@@ -132,9 +132,10 @@ internal static class FirstPersonCamera
     private static void ApplyFirstPersonCamera(GameCamera gameCamera, Camera camera, Player player, Quaternion vanillaCameraRotation)
     {
         Transform anchor = GetCameraAnchor(player);
-        bool usingHeadAnchor = anchor != null && Plugin.UseHeadTrackedAnchor.Value && anchor != player.m_eye;
+        bool hasHeadAnchor = anchor != null && Plugin.UseHeadTrackedAnchor.Value && anchor != player.m_eye;
+        bool isCrouchingOrSneaking = IsCrouchingOrSneaking(player);
 
-        Vector3 desiredPosition = anchor.position;
+        Vector3 desiredPosition = GetHeadBobScaledAnchorPosition(player, anchor, hasHeadAnchor, isCrouchingOrSneaking);
         desiredPosition += Vector3.up * Plugin.CameraVerticalOffset.Value;
 
         Vector3 flatForward = vanillaCameraRotation * Vector3.forward;
@@ -153,7 +154,7 @@ internal static class FirstPersonCamera
             desiredPosition += Vector3.up * Plugin.DownLookExtraVerticalOffset.Value * downLookAmount;
         }
 
-        if (!usingHeadAnchor && IsCrouchingOrSneaking(player))
+        if (!hasHeadAnchor && isCrouchingOrSneaking)
             desiredPosition += Vector3.up * Plugin.CrouchVerticalOffset.Value;
 
         ApplyTransform(gameCamera, camera, desiredPosition, vanillaCameraRotation);
@@ -162,6 +163,32 @@ internal static class FirstPersonCamera
             camera.fieldOfView = Mathf.Clamp(Plugin.Fov.Value, 40f, 120f);
 
         camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
+    }
+
+    private static Vector3 GetHeadBobScaledAnchorPosition(Player player, Transform anchor, bool hasHeadAnchor, bool isCrouchingOrSneaking)
+    {
+        if (!hasHeadAnchor)
+            return anchor.position;
+
+        float headBobAmount = Mathf.Clamp01(Plugin.HeadBobAmount.Value);
+
+        if (headBobAmount >= 0.999f)
+            return anchor.position;
+
+        Vector3 stableEyePosition = GetStableEyePosition(player);
+
+        if (isCrouchingOrSneaking)
+            stableEyePosition += Vector3.up * Plugin.CrouchVerticalOffset.Value * (1f - headBobAmount);
+
+        return Vector3.Lerp(stableEyePosition, anchor.position, headBobAmount);
+    }
+
+    private static Vector3 GetStableEyePosition(Player player)
+    {
+        if (player.m_eye != null)
+            return player.m_eye.position;
+
+        return player.transform.position + Vector3.up * 1.6f;
     }
 
     private static Transform GetCameraAnchor(Player player)
