@@ -11,12 +11,13 @@ The camera tracks the player's animated head when possible, keeps the local body
 - Toggleable first-person mode.
 - Animated head-tracked camera anchor.
 - Forced first-person camera override for gameplay interactions that normally pull the camera back to third person.
-- Configurable head bob amount for motion sickness prevention.
+- Configurable filtered head bob amount for motion sickness prevention.
+- Shadows-only head visibility option to reduce camera clipping while preserving the local head shadow.
 - Vanilla mouse and movement behavior preserved.
 - Body yaw can lock to the vanilla camera direction to avoid seeing your own back.
 - Local body visibility restoration while first person is active.
-- Head, hair, face, helmet, shoulder, cape, and back-item hiding are optional config choices.
-- Head hiding is disabled by default to avoid headless shadows.
+- Head, hair, face, helmet, shoulder, cape, and back-item visibility are optional config choices.
+- Head visibility changes are disabled by default to avoid headless shadows.
 - Configurable FOV, near clip, camera offsets, and optional camera smoothing.
 - Camera override pauses during menu and minimap use, restoring the head when temporarily leaving first person.
 
@@ -31,7 +32,8 @@ The camera tracks the player's animated head when possible, keeps the local body
 | Section | Option | Default | Description |
 | --- | --- | ---: | --- |
 | `Camera Overrides` | `OverrideForcedThirdPerson` | `true` | Keeps first person active during gameplay interactions that normally force third person, such as inventory, crafting, ships, hold fast, and attached states. |
-| `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much animation-based head movement affects the first-person camera. `0` disables head bob. `1` uses full tracked head motion. |
+| `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much fast animation-based head movement affects the first-person camera. `0` keeps only filtered head tracking. `1` uses full tracked head motion. |
+| `Visibility` | `HeadHideMode` | `ShadowsOnly` | Uses shadows-only rendering for matched head renderers so the camera view is cleaner while shadows remain. Other options are `RendererDisable` and `BoneShrink`. |
 
 ## Installation
 
