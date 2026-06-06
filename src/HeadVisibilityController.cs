@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -28,10 +29,10 @@ internal static class HeadVisibilityController
     private static bool _active;
     private static float _nextRefreshTime;
 
-    private static readonly string[] HeadKeywords = { "head" };
-    private static readonly string[] HairKeywords = { "hair" };
-    private static readonly string[] FaceKeywords = { "face", "jaw", "eye" };
-    private static readonly string[] HelmetKeywords = { "helmet", "helm" };
+    private static readonly string[] HeadKeywords = { "head", "neck" };
+    private static readonly string[] HairKeywords = { "hair", "beard" };
+    private static readonly string[] FaceKeywords = { "face", "jaw", "eye", "brow", "mouth", "nose", "teeth" };
+    private static readonly string[] HelmetKeywords = { "helmet", "helm", "hat", "hood", "circlet", "crown", "headgear" };
     private static readonly string[] ShoulderKeywords = { "shoulder" };
     private static readonly string[] BackItemKeywords = { "back", "cape", "cloak" };
 
@@ -77,7 +78,7 @@ internal static class HeadVisibilityController
         if (Time.unscaledTime >= _nextRefreshTime)
         {
             RefreshRendererCache(player);
-            _nextRefreshTime = Time.unscaledTime + 0.5f;
+            _nextRefreshTime = Time.unscaledTime + 0.25f;
         }
 
         HideCachedRenderers();
@@ -139,7 +140,10 @@ internal static class HeadVisibilityController
         foreach (Renderer renderer in desiredRenderers)
         {
             if (!OriginalRendererStates.ContainsKey(renderer))
+            {
                 OriginalRendererStates.Add(renderer, new RendererState(renderer));
+                Plugin.DebugLog($"First-person visibility matched renderer: {BuildRendererDescriptor(renderer)}");
+            }
         }
     }
 
@@ -170,8 +174,45 @@ internal static class HeadVisibilityController
 
     private static string BuildRendererDescriptor(Renderer renderer)
     {
-        string path = renderer.transform != null ? RendererScanner.GetPath(renderer.transform) : string.Empty;
-        return $"{renderer.name} {path}".ToLowerInvariant();
+        StringBuilder builder = new();
+
+        builder.Append(renderer.name).Append(' ');
+
+        if (renderer.transform != null)
+            builder.Append(RendererScanner.GetPath(renderer.transform)).Append(' ');
+
+        if (renderer is SkinnedMeshRenderer skinnedMeshRenderer)
+        {
+            if (skinnedMeshRenderer.sharedMesh != null)
+                builder.Append(skinnedMeshRenderer.sharedMesh.name).Append(' ');
+
+            if (skinnedMeshRenderer.rootBone != null)
+                builder.Append(RendererScanner.GetPath(skinnedMeshRenderer.rootBone)).Append(' ');
+
+            Transform[] bones = skinnedMeshRenderer.bones;
+
+            if (bones != null)
+            {
+                foreach (Transform bone in bones)
+                {
+                    if (bone != null)
+                        builder.Append(bone.name).Append(' ');
+                }
+            }
+        }
+
+        Material[] materials = renderer.sharedMaterials;
+
+        if (materials != null)
+        {
+            foreach (Material material in materials)
+            {
+                if (material != null)
+                    builder.Append(material.name).Append(' ');
+            }
+        }
+
+        return builder.ToString().ToLowerInvariant();
     }
 
     private static bool ContainsAny(string value, string[] keywords)
@@ -199,21 +240,27 @@ internal static class HeadVisibilityController
                 continue;
             }
 
-            if (renderer.enabled)
-                renderer.enabled = false;
+            renderer.enabled = false;
         }
     }
 
     private static bool ShouldUseShadowsOnly(Renderer renderer)
     {
-        if (!Plugin.HideHead.Value)
-            return false;
-
         string descriptor = BuildRendererDescriptor(renderer);
-        return ContainsAny(descriptor, HeadKeywords) ||
-               ContainsAny(descriptor, HairKeywords) ||
-               ContainsAny(descriptor, FaceKeywords) ||
-               ContainsAny(descriptor, HelmetKeywords);
+
+        if (Plugin.HideHead.Value && ContainsAny(descriptor, HeadKeywords))
+            return true;
+
+        if (Plugin.HideHair.Value && ContainsAny(descriptor, HairKeywords))
+            return true;
+
+        if (Plugin.HideFace.Value && ContainsAny(descriptor, FaceKeywords))
+            return true;
+
+        if (Plugin.HideHelmet.Value && ContainsAny(descriptor, HelmetKeywords))
+            return true;
+
+        return false;
     }
 
     private static void ShrinkHeadBones(Player player)
