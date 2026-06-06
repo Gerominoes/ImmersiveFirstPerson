@@ -16,7 +16,7 @@ internal static class GameCameraUpdatePatch
 
 internal static class FirstPersonCamera
 {
-    private const float HeadBobFilterSpeed = 8f;
+    private const float HeadBobFilterSpeed = 3f;
 
     private static readonly FieldInfo? CameraField =
         AccessTools.Field(typeof(GameCamera), "m_camera");
@@ -44,7 +44,8 @@ internal static class FirstPersonCamera
     private static Vector3 _smoothPosition;
     private static bool _hasSmoothPosition;
 
-    private static Vector3 _filteredHeadPosition;
+    private static Player? _filteredHeadPlayer;
+    private static Vector3 _filteredLocalHeadPosition;
     private static bool _hasFilteredHeadPosition;
 
     internal static void Update(GameCamera gameCamera)
@@ -65,7 +66,8 @@ internal static class FirstPersonCamera
         if (player == null || !FirstPersonState.ShouldApplyCamera(player))
         {
             RestoreCamera(camera);
-            ResetSmoothing();
+            ResetPositionSmoothing();
+            ResetHeadBobFilter();
             RestoreLocalVisibilityForSuppressedCamera();
             return;
         }
@@ -87,7 +89,8 @@ internal static class FirstPersonCamera
         if (_lastCamera != null)
             RestoreCamera(_lastCamera);
 
-        ResetSmoothing();
+        ResetPositionSmoothing();
+        ResetHeadBobFilter();
         ResetAnchorCache();
     }
 
@@ -140,7 +143,7 @@ internal static class FirstPersonCamera
         bool hasHeadAnchor = anchor != null && Plugin.UseHeadTrackedAnchor.Value && anchor != player.m_eye;
         bool isCrouchingOrSneaking = IsCrouchingOrSneaking(player);
 
-        Vector3 desiredPosition = GetHeadBobScaledAnchorPosition(anchor, hasHeadAnchor);
+        Vector3 desiredPosition = GetHeadBobScaledAnchorPosition(player, anchor, hasHeadAnchor);
         desiredPosition += Vector3.up * Plugin.CameraVerticalOffset.Value;
 
         Vector3 flatForward = vanillaCameraRotation * Vector3.forward;
@@ -170,7 +173,7 @@ internal static class FirstPersonCamera
         camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
     }
 
-    private static Vector3 GetHeadBobScaledAnchorPosition(Transform anchor, bool hasHeadAnchor)
+    private static Vector3 GetHeadBobScaledAnchorPosition(Player player, Transform anchor, bool hasHeadAnchor)
     {
         if (!hasHeadAnchor)
         {
@@ -179,22 +182,27 @@ internal static class FirstPersonCamera
         }
 
         float headBobAmount = Mathf.Clamp01(Plugin.HeadBobAmount.Value);
-        Vector3 animatedHeadPosition = anchor.position;
+        Vector3 animatedLocalHeadPosition = player.transform.InverseTransformPoint(anchor.position);
+
+        if (_filteredHeadPlayer != player)
+            ResetHeadBobFilter();
 
         if (!_hasFilteredHeadPosition)
         {
-            _filteredHeadPosition = animatedHeadPosition;
+            _filteredHeadPlayer = player;
+            _filteredLocalHeadPosition = animatedLocalHeadPosition;
             _hasFilteredHeadPosition = true;
         }
 
         float lerp = 1f - Mathf.Exp(-HeadBobFilterSpeed * Time.unscaledDeltaTime);
-        _filteredHeadPosition = Vector3.Lerp(_filteredHeadPosition, animatedHeadPosition, lerp);
+        _filteredLocalHeadPosition = Vector3.Lerp(_filteredLocalHeadPosition, animatedLocalHeadPosition, lerp);
 
         if (headBobAmount >= 0.999f)
-            return animatedHeadPosition;
+            return anchor.position;
 
-        Vector3 fastHeadMotion = animatedHeadPosition - _filteredHeadPosition;
-        return _filteredHeadPosition + fastHeadMotion * headBobAmount;
+        Vector3 fastLocalHeadMotion = animatedLocalHeadPosition - _filteredLocalHeadPosition;
+        Vector3 finalLocalHeadPosition = _filteredLocalHeadPosition + fastLocalHeadMotion * headBobAmount;
+        return player.transform.TransformPoint(finalLocalHeadPosition);
     }
 
     private static Transform GetCameraAnchor(Player player)
@@ -318,7 +326,7 @@ internal static class FirstPersonCamera
         }
         else
         {
-            ResetSmoothing();
+            ResetPositionSmoothing();
         }
 
         gameCamera.transform.position = finalPosition;
@@ -340,23 +348,22 @@ internal static class FirstPersonCamera
         camera.nearClipPlane = _originalNearClip;
     }
 
-    private static void ResetSmoothing()
+    private static void ResetPositionSmoothing()
     {
         _hasSmoothPosition = false;
         _smoothPosition = Vector3.zero;
-        ResetHeadBobFilter();
     }
 
     private static void ResetHeadBobFilter()
     {
+        _filteredHeadPlayer = null;
         _hasFilteredHeadPosition = false;
-        _filteredHeadPosition = Vector3.zero;
+        _filteredLocalHeadPosition = Vector3.zero;
     }
 
     private static void ResetAnchorCache()
     {
         _cachedAnchorPlayer = null;
         _cachedHeadAnchor = null;
-        ResetHeadBobFilter();
     }
 }
