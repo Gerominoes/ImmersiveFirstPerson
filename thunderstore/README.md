@@ -4,6 +4,8 @@ Immersive First Person is a Valheim mod that adds a body-aware first-person came
 
 The camera tracks the player's animated head when possible, keeps the local body visible, and avoids hiding the head by default so normal shadows are preserved.
 
+![Immersive First Person demo](https://raw.githubusercontent.com/Gerominoes/ImmersiveFirstPerson/main/assets/demo.gif)
+
 ## Features
 
 - Toggleable first-person mode.
@@ -22,24 +24,36 @@ The camera tracks the player's animated head when possible, keeps the local body
 | --- | --- |
 | Toggle first-person mode | `F6` |
 
+## Recommended defaults
+
+```ini
+[Camera]
+UseHeadTrackedAnchor = true
+SmoothCamera = false
+LockBodyToCamera = true
+
+[Visibility]
+HideHead = false
+HideHair = false
+HideFace = false
+HideHelmet = false
+ForceBodyVisible = true
+```
+
 ## Installation
 
-### Mod manager
+Install with a mod manager, or place `ImmersiveFirstPerson.dll` in:
 
-Install through your preferred Valheim mod manager once the mod is available on Thunderstore or Nexus Mods.
+```text
+Valheim/BepInEx/plugins/ImmersiveFirstPerson/
+```
 
-### Manual
-
-1. Install BepInEx for Valheim.
-2. Download the latest release ZIP.
-3. Extract `ImmersiveFirstPerson.dll`.
-4. Place it in: `Valheim/BepInEx/plugins/ImmersiveFirstPerson/`
-5. Launch Valheim once to generate the config file.
+Launch the game once to generate the config file.
 
 ## Compatibility
 
 This mod changes camera placement and local player visibility. It may conflict with mods that heavily modify the player camera, character skeleton, animation rig, or local player rendering.
 
-## Credits
+## Updating from older versions
 
-Azumatt's First Person Mode mod for inspiration.
+If the mod behaves strangely after updating, back up and delete the old config file, then launch the game once to regenerate it.
