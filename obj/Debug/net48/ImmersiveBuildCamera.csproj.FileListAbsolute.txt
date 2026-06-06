@@ -1,0 +1,8 @@
+C:\Dev\ValheimMods\ImmersiveBuildCamera\bin\Debug\net48\ImmersiveBuildCamera.dll
+C:\Dev\ValheimMods\ImmersiveBuildCamera\bin\Debug\net48\ImmersiveBuildCamera.pdb
+C:\Dev\ValheimMods\ImmersiveBuildCamera\obj\Debug\net48\ImmersiveBuildCamera.csproj.AssemblyReference.cache
+C:\Dev\ValheimMods\ImmersiveBuildCamera\obj\Debug\net48\ImmersiveBuildCamera.GeneratedMSBuildEditorConfig.editorconfig
+C:\Dev\ValheimMods\ImmersiveBuildCamera\obj\Debug\net48\ImmersiveBuildCamera.csproj.CoreCompileInputs.cache
+C:\Dev\ValheimMods\ImmersiveBuildCamera\obj\Debug\net48\ImmersiveBuildCamera.sourcelink.json
+C:\Dev\ValheimMods\ImmersiveBuildCamera\obj\Debug\net48\ImmersiveBuildCamera.dll
+C:\Dev\ValheimMods\ImmersiveBuildCamera\obj\Debug\net48\ImmersiveBuildCamera.pdb

@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build mod",
+      "type": "shell",
+      "command": "dotnet build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Clean mod",
+      "type": "shell",
+      "command": "dotnet clean",
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}
