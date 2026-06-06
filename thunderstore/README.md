@@ -1,52 +1,45 @@
-# Immersive Build Camera
+# Immersive First Person
 
-Immersive Build Camera is a lightweight Valheim mod that improves building by giving the player a closer, smoother, and more controllable camera while using build tools.
+Immersive First Person is a Valheim mod that adds a body-aware first-person camera while preserving vanilla controls.
 
-It is designed to improve building comfort and precision without turning Valheim into a freecam editor, creative-mode tool, or placement cheat mod.
+The camera tracks the player's animated head when possible, keeps the local body visible, and avoids hiding the head by default so normal shadows are preserved.
 
 ## Features
 
-- Toggleable immersive build camera while using build tools.
-- Smooth camera movement while immersive build camera is active.
-- Slow precision movement for careful placement.
-- Left and right shoulder peek controls.
-- Optional shoulder peek toggle mode.
-- Stronger shoulder peek defaults for better corner visibility.
-- Hold-to-adjust camera distance controls.
-- Dedicated camera distance keybinds that do not conflict with build-piece rotation.
-- Configurable FOV, near clip, camera distance, shoulder peek, movement, and visibility settings.
-- Local player model hiding while the immersive camera is active.
-- Optional debug logging for troubleshooting.
+- Toggleable first-person mode.
+- Animated head-tracked camera anchor.
+- Vanilla mouse and movement behavior preserved.
+- Body yaw can lock to the vanilla camera direction to avoid seeing your own back.
+- Local body visibility restoration while first person is active.
+- Head, hair, face, helmet, shoulder, cape, and back-item hiding are optional config choices.
+- Head hiding is disabled by default to avoid headless shadows.
+- Configurable FOV, near clip, camera offsets, and optional camera smoothing.
+- Camera override pauses during inventory, menu, and minimap use, restoring the head when temporarily leaving first person.
 
 ## Default controls
 
 | Action | Default key |
 | --- | --- |
-| Toggle immersive build camera | `LeftAlt` |
-| Toggle precision movement | `LeftControl` |
-| Peek left | `Q` |
-| Peek right | `E` |
-| Move camera closer | `PageUp` |
-| Move camera farther | `PageDown` |
-
-Mouse wheel is intentionally reserved for Valheim's normal build-piece rotation behavior.
+| Toggle first-person mode | `F6` |
 
 ## Installation
 
-Install with a mod manager, or place `ImmersiveBuildCamera.dll` in:
+### Mod manager
 
-```text
-Valheim/BepInEx/plugins/ImmersiveBuildCamera/
-```
+Install through your preferred Valheim mod manager once the mod is available on Thunderstore or Nexus Mods.
 
-Launch the game once to generate the config file.
+### Manual
 
-## Updating from older versions
-
-If the mod behaves strangely after updating, back up and delete the old config file, then launch the game once to regenerate it.
-
-Older config files may still contain scroll-related entries. Current builds use dedicated camera distance keys and do not use mouse wheel camera distance control.
+1. Install BepInEx for Valheim.
+2. Download the latest release ZIP.
+3. Extract `ImmersiveFirstPerson.dll`.
+4. Place it in: `Valheim/BepInEx/plugins/ImmersiveFirstPerson/`
+5. Launch Valheim once to generate the config file.
 
 ## Compatibility
 
-Potential compatibility issues may occur with mods that also patch player camera behavior, build mode input, player movement speed, or local player rendering.
+This mod changes camera placement and local player visibility. It may conflict with mods that heavily modify the player camera, character skeleton, animation rig, or local player rendering.
+
+## Credits
+
+Azumatt's First Person Mode mod for inspiration.
