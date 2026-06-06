@@ -4,6 +4,8 @@ Immersive First Person is a Valheim mod that adds a body-aware first-person came
 
 The camera tracks the player's animated head when possible, keeps the local body visible, and avoids hiding the head by default so normal shadows are preserved.
 
+![Immersive First Person demo](assets/demo.gif)
+
 ## Features
 
 - Toggleable first-person mode.
