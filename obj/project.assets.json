@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Dev\\ValheimMods\\ImmersiveFirstPerson\\ImmersiveBuildCamera.csproj",
-      "projectName": "ImmersiveBuildCamera",
-      "projectPath": "C:\\Dev\\ValheimMods\\ImmersiveFirstPerson\\ImmersiveBuildCamera.csproj",
+      "projectUniqueName": "c:\\Dev\\ValheimMods\\ImmersiveFirstPerson\\ImmersiveFirstPerson.csproj",
+      "projectName": "ImmersiveFirstPerson",
+      "projectPath": "c:\\Dev\\ValheimMods\\ImmersiveFirstPerson\\ImmersiveFirstPerson.csproj",
       "packagesPath": "C:\\Users\\MJ\\.nuget\\packages\\",
-      "outputPath": "C:\\Dev\\ValheimMods\\ImmersiveFirstPerson\\obj\\",
+      "outputPath": "c:\\Dev\\ValheimMods\\ImmersiveFirstPerson\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
