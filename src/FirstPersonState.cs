@@ -87,7 +87,7 @@ internal static class FirstPersonState
 
     private static bool CanReadToggleInput()
     {
-        return !IsInputBlockingUiVisible();
+        return !IsAnyBlockingUiVisible();
     }
 
     private static bool CanOverrideCurrentCameraContext()
