@@ -8,8 +8,8 @@ internal static class HeadVisibilityController
 {
     private static readonly Dictionary<Renderer, bool> OriginalRendererStates = new();
     private static readonly Dictionary<Transform, Vector3> OriginalBoneScales = new();
-    private static readonly List<Renderer> RenderersToRemove = new();
-    private static readonly List<Transform> BonesToRemove = new();
+    private static readonly List<Renderer?> RenderersToRemove = new();
+    private static readonly List<Transform?> BonesToRemove = new();
 
     private static Player? _cachedPlayer;
     private static bool _active;
@@ -112,10 +112,13 @@ internal static class HeadVisibilityController
                 RenderersToRemove.Add(renderer);
         }
 
-        foreach (Renderer renderer in RenderersToRemove)
+        foreach (Renderer? renderer in RenderersToRemove)
         {
-            RestoreRenderer(renderer);
-            OriginalRendererStates.Remove(renderer);
+            if (renderer is not null)
+            {
+                RestoreRenderer(renderer);
+                OriginalRendererStates.Remove(renderer);
+            }
         }
 
         RenderersToRemove.Clear();
@@ -265,8 +268,11 @@ internal static class HeadVisibilityController
                 RenderersToRemove.Add(renderer);
         }
 
-        foreach (Renderer renderer in RenderersToRemove)
-            OriginalRendererStates.Remove(renderer);
+        foreach (Renderer? renderer in RenderersToRemove)
+        {
+            if (renderer is not null)
+                OriginalRendererStates.Remove(renderer);
+        }
 
         RenderersToRemove.Clear();
     }
@@ -281,8 +287,11 @@ internal static class HeadVisibilityController
                 BonesToRemove.Add(transform);
         }
 
-        foreach (Transform transform in BonesToRemove)
-            OriginalBoneScales.Remove(transform);
+        foreach (Transform? transform in BonesToRemove)
+        {
+            if (transform is not null)
+                OriginalBoneScales.Remove(transform);
+        }
 
         BonesToRemove.Clear();
     }

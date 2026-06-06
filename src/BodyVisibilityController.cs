@@ -7,7 +7,7 @@ namespace ImmersiveFirstPerson;
 internal static class BodyVisibilityController
 {
     private static readonly Dictionary<Renderer, bool> OriginalRendererStates = new();
-    private static readonly List<Renderer> DeadRenderers = new();
+    private static readonly List<Renderer?> DeadRenderers = new();
     private static Player? _cachedPlayer;
     private static bool _captured;
 
@@ -107,8 +107,11 @@ internal static class BodyVisibilityController
                 DeadRenderers.Add(renderer);
         }
 
-        foreach (Renderer renderer in DeadRenderers)
-            OriginalRendererStates.Remove(renderer);
+        foreach (Renderer? renderer in DeadRenderers)
+        {
+            if (renderer is not null)
+                OriginalRendererStates.Remove(renderer);
+        }
 
         DeadRenderers.Clear();
     }
