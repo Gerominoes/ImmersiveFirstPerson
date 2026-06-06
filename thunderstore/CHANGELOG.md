@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.2
+
+ANOTHER README FIX
+
+## v1.0.1
+
+README Fix lol
+
 ## v1.0.0
 
 Initial public release of Immersive First Person.
