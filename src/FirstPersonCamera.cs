@@ -16,6 +16,8 @@ internal static class GameCameraUpdatePatch
 
 internal static class FirstPersonCamera
 {
+    private const float HeadBobFilterSpeed = 3f;
+
     private static readonly FieldInfo? CameraField =
         AccessTools.Field(typeof(GameCamera), "m_camera");
 
@@ -42,6 +44,10 @@ internal static class FirstPersonCamera
     private static Vector3 _smoothPosition;
     private static bool _hasSmoothPosition;
 
+    private static Player? _filteredHeadPlayer;
+    private static Vector3 _filteredLocalHeadPosition;
+    private static bool _hasFilteredHeadPosition;
+
     internal static void Update(GameCamera gameCamera)
     {
         if (gameCamera == null)
@@ -60,7 +66,8 @@ internal static class FirstPersonCamera
         if (player == null || !FirstPersonState.ShouldApplyCamera(player))
         {
             RestoreCamera(camera);
-            ResetSmoothing();
+            ResetPositionSmoothing();
+            ResetHeadBobFilter();
             RestoreLocalVisibilityForSuppressedCamera();
             return;
         }
@@ -82,7 +89,8 @@ internal static class FirstPersonCamera
         if (_lastCamera != null)
             RestoreCamera(_lastCamera);
 
-        ResetSmoothing();
+        ResetPositionSmoothing();
+        ResetHeadBobFilter();
         ResetAnchorCache();
     }
 
@@ -132,9 +140,10 @@ internal static class FirstPersonCamera
     private static void ApplyFirstPersonCamera(GameCamera gameCamera, Camera camera, Player player, Quaternion vanillaCameraRotation)
     {
         Transform anchor = GetCameraAnchor(player);
-        bool usingHeadAnchor = anchor != null && Plugin.UseHeadTrackedAnchor.Value && anchor != player.m_eye;
+        bool hasHeadAnchor = anchor != null && Plugin.UseHeadTrackedAnchor.Value && anchor != player.m_eye;
+        bool isCrouchingOrSneaking = IsCrouchingOrSneaking(player);
 
-        Vector3 desiredPosition = anchor.position;
+        Vector3 desiredPosition = GetHeadBobScaledAnchorPosition(player, anchor, hasHeadAnchor);
         desiredPosition += Vector3.up * Plugin.CameraVerticalOffset.Value;
 
         Vector3 flatForward = vanillaCameraRotation * Vector3.forward;
@@ -153,7 +162,7 @@ internal static class FirstPersonCamera
             desiredPosition += Vector3.up * Plugin.DownLookExtraVerticalOffset.Value * downLookAmount;
         }
 
-        if (!usingHeadAnchor && IsCrouchingOrSneaking(player))
+        if (!hasHeadAnchor && isCrouchingOrSneaking)
             desiredPosition += Vector3.up * Plugin.CrouchVerticalOffset.Value;
 
         ApplyTransform(gameCamera, camera, desiredPosition, vanillaCameraRotation);
@@ -162,6 +171,38 @@ internal static class FirstPersonCamera
             camera.fieldOfView = Mathf.Clamp(Plugin.Fov.Value, 40f, 120f);
 
         camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
+    }
+
+    private static Vector3 GetHeadBobScaledAnchorPosition(Player player, Transform anchor, bool hasHeadAnchor)
+    {
+        if (!hasHeadAnchor)
+        {
+            ResetHeadBobFilter();
+            return anchor.position;
+        }
+
+        float headBobAmount = Mathf.Clamp01(Plugin.HeadBobAmount.Value);
+        Vector3 animatedLocalHeadPosition = player.transform.InverseTransformPoint(anchor.position);
+
+        if (_filteredHeadPlayer != player)
+            ResetHeadBobFilter();
+
+        if (!_hasFilteredHeadPosition)
+        {
+            _filteredHeadPlayer = player;
+            _filteredLocalHeadPosition = animatedLocalHeadPosition;
+            _hasFilteredHeadPosition = true;
+        }
+
+        float lerp = 1f - Mathf.Exp(-HeadBobFilterSpeed * Time.unscaledDeltaTime);
+        _filteredLocalHeadPosition = Vector3.Lerp(_filteredLocalHeadPosition, animatedLocalHeadPosition, lerp);
+
+        if (headBobAmount >= 0.999f)
+            return anchor.position;
+
+        Vector3 fastLocalHeadMotion = animatedLocalHeadPosition - _filteredLocalHeadPosition;
+        Vector3 finalLocalHeadPosition = _filteredLocalHeadPosition + fastLocalHeadMotion * headBobAmount;
+        return player.transform.TransformPoint(finalLocalHeadPosition);
     }
 
     private static Transform GetCameraAnchor(Player player)
@@ -285,7 +326,7 @@ internal static class FirstPersonCamera
         }
         else
         {
-            ResetSmoothing();
+            ResetPositionSmoothing();
         }
 
         gameCamera.transform.position = finalPosition;
@@ -307,10 +348,17 @@ internal static class FirstPersonCamera
         camera.nearClipPlane = _originalNearClip;
     }
 
-    private static void ResetSmoothing()
+    private static void ResetPositionSmoothing()
     {
         _hasSmoothPosition = false;
         _smoothPosition = Vector3.zero;
+    }
+
+    private static void ResetHeadBobFilter()
+    {
+        _filteredHeadPlayer = null;
+        _hasFilteredHeadPosition = false;
+        _filteredLocalHeadPosition = Vector3.zero;
     }
 
     private static void ResetAnchorCache()
