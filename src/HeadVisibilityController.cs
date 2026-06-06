@@ -36,6 +36,9 @@ internal static class HeadVisibilityController
     private static readonly string[] ShoulderKeywords = { "shoulder" };
     private static readonly string[] BackItemKeywords = { "back", "cape", "cloak" };
 
+    private static readonly string[] FullBodyKeywords = { "body", "player", "character", "human", "male", "female", "skin" };
+    private static readonly string[] WearableKeywords = { "helmet", "helm", "hat", "hood", "circlet", "crown", "headgear", "hair", "beard", "shoulder", "cape", "cloak", "back" };
+
     internal static void Update(Player player)
     {
         if (player == null || player != Player.m_localPlayer)
@@ -151,6 +154,9 @@ internal static class HeadVisibilityController
     {
         string descriptor = BuildRendererDescriptor(renderer);
 
+        if (LooksLikeWholeBodyRenderer(descriptor))
+            return false;
+
         if (Plugin.HideHead.Value && Plugin.HeadHideModeConfig.Value != HeadHideModeOption.BoneShrink && ContainsAny(descriptor, HeadKeywords))
             return true;
 
@@ -181,25 +187,8 @@ internal static class HeadVisibilityController
         if (renderer.transform != null)
             builder.Append(RendererScanner.GetPath(renderer.transform)).Append(' ');
 
-        if (renderer is SkinnedMeshRenderer skinnedMeshRenderer)
-        {
-            if (skinnedMeshRenderer.sharedMesh != null)
-                builder.Append(skinnedMeshRenderer.sharedMesh.name).Append(' ');
-
-            if (skinnedMeshRenderer.rootBone != null)
-                builder.Append(RendererScanner.GetPath(skinnedMeshRenderer.rootBone)).Append(' ');
-
-            Transform[] bones = skinnedMeshRenderer.bones;
-
-            if (bones != null)
-            {
-                foreach (Transform bone in bones)
-                {
-                    if (bone != null)
-                        builder.Append(bone.name).Append(' ');
-                }
-            }
-        }
+        if (renderer is SkinnedMeshRenderer skinnedMeshRenderer && skinnedMeshRenderer.sharedMesh != null)
+            builder.Append(skinnedMeshRenderer.sharedMesh.name).Append(' ');
 
         Material[] materials = renderer.sharedMaterials;
 
@@ -213,6 +202,11 @@ internal static class HeadVisibilityController
         }
 
         return builder.ToString().ToLowerInvariant();
+    }
+
+    private static bool LooksLikeWholeBodyRenderer(string descriptor)
+    {
+        return ContainsAny(descriptor, FullBodyKeywords) && !ContainsAny(descriptor, WearableKeywords);
     }
 
     private static bool ContainsAny(string value, string[] keywords)
@@ -247,6 +241,9 @@ internal static class HeadVisibilityController
     private static bool ShouldUseShadowsOnly(Renderer renderer)
     {
         string descriptor = BuildRendererDescriptor(renderer);
+
+        if (LooksLikeWholeBodyRenderer(descriptor))
+            return false;
 
         if (Plugin.HideHead.Value && ContainsAny(descriptor, HeadKeywords))
             return true;
