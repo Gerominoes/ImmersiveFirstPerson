@@ -1,12 +1,25 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace ImmersiveFirstPerson;
 
 internal static class HeadVisibilityController
 {
-    private static readonly Dictionary<Renderer, bool> OriginalRendererStates = new();
+    private readonly struct RendererState
+    {
+        internal readonly bool Enabled;
+        internal readonly ShadowCastingMode ShadowCastingMode;
+
+        internal RendererState(Renderer renderer)
+        {
+            Enabled = renderer.enabled;
+            ShadowCastingMode = renderer.shadowCastingMode;
+        }
+    }
+
+    private static readonly Dictionary<Renderer, RendererState> OriginalRendererStates = new();
     private static readonly Dictionary<Transform, Vector3> OriginalBoneScales = new();
     private static readonly List<Renderer?> RenderersToRemove = new();
     private static readonly List<Transform?> BonesToRemove = new();
@@ -104,7 +117,7 @@ internal static class HeadVisibilityController
 
         RenderersToRemove.Clear();
 
-        foreach (KeyValuePair<Renderer, bool> entry in OriginalRendererStates)
+        foreach (KeyValuePair<Renderer, RendererState> entry in OriginalRendererStates)
         {
             Renderer renderer = entry.Key;
 
@@ -126,7 +139,7 @@ internal static class HeadVisibilityController
         foreach (Renderer renderer in desiredRenderers)
         {
             if (!OriginalRendererStates.ContainsKey(renderer))
-                OriginalRendererStates.Add(renderer, renderer.enabled);
+                OriginalRendererStates.Add(renderer, new RendererState(renderer));
         }
     }
 
@@ -134,7 +147,7 @@ internal static class HeadVisibilityController
     {
         string descriptor = BuildRendererDescriptor(renderer);
 
-        if (Plugin.HeadHideModeConfig.Value == HeadHideModeOption.RendererDisable && Plugin.HideHead.Value && ContainsAny(descriptor, HeadKeywords))
+        if (Plugin.HideHead.Value && Plugin.HeadHideModeConfig.Value != HeadHideModeOption.BoneShrink && ContainsAny(descriptor, HeadKeywords))
             return true;
 
         if (Plugin.HideHair.Value && ContainsAny(descriptor, HairKeywords))
@@ -179,9 +192,28 @@ internal static class HeadVisibilityController
             if (renderer == null)
                 continue;
 
+            if (Plugin.HeadHideModeConfig.Value == HeadHideModeOption.ShadowsOnly && ShouldUseShadowsOnly(renderer))
+            {
+                renderer.enabled = true;
+                renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+                continue;
+            }
+
             if (renderer.enabled)
                 renderer.enabled = false;
         }
+    }
+
+    private static bool ShouldUseShadowsOnly(Renderer renderer)
+    {
+        if (!Plugin.HideHead.Value)
+            return false;
+
+        string descriptor = BuildRendererDescriptor(renderer);
+        return ContainsAny(descriptor, HeadKeywords) ||
+               ContainsAny(descriptor, HairKeywords) ||
+               ContainsAny(descriptor, FaceKeywords) ||
+               ContainsAny(descriptor, HelmetKeywords);
     }
 
     private static void ShrinkHeadBones(Player player)
@@ -215,14 +247,15 @@ internal static class HeadVisibilityController
         if (OriginalRendererStates.Count == 0)
             return;
 
-        foreach (KeyValuePair<Renderer, bool> entry in OriginalRendererStates)
+        foreach (KeyValuePair<Renderer, RendererState> entry in OriginalRendererStates)
         {
             Renderer renderer = entry.Key;
 
             if (renderer == null)
                 continue;
 
-            renderer.enabled = entry.Value;
+            renderer.enabled = entry.Value.Enabled;
+            renderer.shadowCastingMode = entry.Value.ShadowCastingMode;
         }
 
         OriginalRendererStates.Clear();
@@ -235,8 +268,11 @@ internal static class HeadVisibilityController
         if (renderer == null)
             return;
 
-        if (OriginalRendererStates.TryGetValue(renderer, out bool originalState))
-            renderer.enabled = originalState;
+        if (OriginalRendererStates.TryGetValue(renderer, out RendererState originalState))
+        {
+            renderer.enabled = originalState.Enabled;
+            renderer.shadowCastingMode = originalState.ShadowCastingMode;
+        }
     }
 
     private static void RestoreBoneScales()
