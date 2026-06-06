@@ -4,7 +4,7 @@ Immersive First Person is a Valheim mod that adds a body-aware first-person came
 
 The camera tracks the player's animated head when possible, keeps the local body visible, and avoids hiding the head by default so normal shadows are preserved.
 
-![Immersive First Person demo](https://raw.githubusercontent.com/Gerominoes/ImmersiveFirstPerson/main/assets/demo.gif)
+![Immersive First Person SS](https://raw.githubusercontent.com/Gerominoes/ImmersiveFirstPerson/main/assets/Screenshot 2026-06-06 200023.png)
 
 ## Features
 
@@ -24,21 +24,6 @@ The camera tracks the player's animated head when possible, keeps the local body
 | --- | --- |
 | Toggle first-person mode | `F6` |
 
-## Recommended defaults
-
-```ini
-[Camera]
-UseHeadTrackedAnchor = true
-SmoothCamera = false
-LockBodyToCamera = true
-
-[Visibility]
-HideHead = false
-HideHair = false
-HideFace = false
-HideHelmet = false
-ForceBodyVisible = true
-```
 
 ## Installation
 
@@ -57,3 +42,7 @@ This mod changes camera placement and local player visibility. It may conflict w
 ## Updating from older versions
 
 If the mod behaves strangely after updating, back up and delete the old config file, then launch the game once to regenerate it.
+
+## Credits
+
+Azumatt's First Person Mode for inpsiration.
