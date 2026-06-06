@@ -8,6 +8,11 @@ namespace ImmersiveFirstPerson;
 
 internal static class HeadVisibilityController
 {
+    private const float HeadCameraClipRadius = 0.55f;
+    private const float ShoulderCameraClipRadius = 0.85f;
+    private const float MaxHeadPartExtent = 1.15f;
+    private const float MaxShoulderPartExtent = 1.4f;
+
     private readonly struct RendererState
     {
         internal readonly bool Enabled;
@@ -37,7 +42,7 @@ internal static class HeadVisibilityController
     private static readonly string[] BackItemKeywords = { "back", "cape", "cloak" };
 
     private static readonly string[] FullBodyKeywords = { "body", "player", "character", "human", "male", "female", "skin" };
-    private static readonly string[] WearableKeywords = { "helmet", "helm", "hat", "hood", "circlet", "crown", "headgear", "hair", "beard", "shoulder", "cape", "cloak", "back" };
+    private static readonly string[] WearableKeywords = { "helmet", "helm", "hat", "hood", "circlet", "crown", "headgear", "hair", "beard", "shoulder", "cape", "cloak", "back", "armor", "armour", "padded" };
 
     internal static void Update(Player player)
     {
@@ -81,7 +86,7 @@ internal static class HeadVisibilityController
         if (Time.unscaledTime >= _nextRefreshTime)
         {
             RefreshRendererCache(player);
-            _nextRefreshTime = Time.unscaledTime + 0.25f;
+            _nextRefreshTime = Time.unscaledTime + 0.15f;
         }
 
         HideCachedRenderers();
@@ -145,7 +150,7 @@ internal static class HeadVisibilityController
             if (!OriginalRendererStates.ContainsKey(renderer))
             {
                 OriginalRendererStates.Add(renderer, new RendererState(renderer));
-                Plugin.DebugLog($"First-person visibility matched renderer: {BuildRendererDescriptor(renderer)}");
+                Plugin.DebugLog($"First-person visibility matched renderer: {BuildRendererDescriptor(renderer)} | bounds={renderer.bounds.size}");
             }
         }
     }
@@ -154,7 +159,7 @@ internal static class HeadVisibilityController
     {
         string descriptor = BuildRendererDescriptor(renderer);
 
-        if (LooksLikeWholeBodyRenderer(descriptor))
+        if (LooksLikeWholeBodyRenderer(renderer, descriptor))
             return false;
 
         if (Plugin.HideHead.Value && Plugin.HeadHideModeConfig.Value != HeadHideModeOption.BoneShrink && ContainsAny(descriptor, HeadKeywords))
@@ -173,6 +178,9 @@ internal static class HeadVisibilityController
             return true;
 
         if (Plugin.HideBackItems.Value && ContainsAny(descriptor, BackItemKeywords))
+            return true;
+
+        if (ShouldHideCameraClippingRenderer(renderer, descriptor))
             return true;
 
         return false;
@@ -204,9 +212,43 @@ internal static class HeadVisibilityController
         return builder.ToString().ToLowerInvariant();
     }
 
-    private static bool LooksLikeWholeBodyRenderer(string descriptor)
+    private static bool LooksLikeWholeBodyRenderer(Renderer renderer, string descriptor)
     {
-        return ContainsAny(descriptor, FullBodyKeywords) && !ContainsAny(descriptor, WearableKeywords);
+        Bounds bounds = renderer.bounds;
+        Vector3 size = bounds.size;
+        float largestExtent = Mathf.Max(size.x, size.y, size.z);
+        bool hasBodyName = ContainsAny(descriptor, FullBodyKeywords) && !ContainsAny(descriptor, WearableKeywords);
+        bool hasBodyScale = size.y > 1.2f && largestExtent > 1.4f && !ContainsAny(descriptor, WearableKeywords);
+
+        return hasBodyName || hasBodyScale;
+    }
+
+    private static bool ShouldHideCameraClippingRenderer(Renderer renderer, string descriptor)
+    {
+        Camera? camera = Camera.main;
+
+        if (camera == null)
+            return false;
+
+        bool wantsHeadAreaHidden = Plugin.HideHead.Value || Plugin.HideHair.Value || Plugin.HideFace.Value || Plugin.HideHelmet.Value;
+        bool wantsShoulderAreaHidden = Plugin.HideShoulderPads.Value;
+
+        if (!wantsHeadAreaHidden && !wantsShoulderAreaHidden)
+            return false;
+
+        Bounds bounds = renderer.bounds;
+        Vector3 closestPoint = bounds.ClosestPoint(camera.transform.position);
+        float distanceToCamera = Vector3.Distance(closestPoint, camera.transform.position);
+        Vector3 size = bounds.size;
+        float largestExtent = Mathf.Max(size.x, size.y, size.z);
+
+        if (wantsHeadAreaHidden && largestExtent <= MaxHeadPartExtent && distanceToCamera <= HeadCameraClipRadius)
+            return true;
+
+        if (wantsShoulderAreaHidden && largestExtent <= MaxShoulderPartExtent && distanceToCamera <= ShoulderCameraClipRadius)
+            return true;
+
+        return false;
     }
 
     private static bool ContainsAny(string value, string[] keywords)
@@ -242,7 +284,7 @@ internal static class HeadVisibilityController
     {
         string descriptor = BuildRendererDescriptor(renderer);
 
-        if (LooksLikeWholeBodyRenderer(descriptor))
+        if (LooksLikeWholeBodyRenderer(renderer, descriptor))
             return false;
 
         if (Plugin.HideHead.Value && ContainsAny(descriptor, HeadKeywords))
@@ -255,6 +297,9 @@ internal static class HeadVisibilityController
             return true;
 
         if (Plugin.HideHelmet.Value && ContainsAny(descriptor, HelmetKeywords))
+            return true;
+
+        if (ShouldHideCameraClippingRenderer(renderer, descriptor))
             return true;
 
         return false;
