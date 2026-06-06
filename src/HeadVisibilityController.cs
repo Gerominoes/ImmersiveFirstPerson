@@ -8,10 +8,9 @@ namespace ImmersiveFirstPerson;
 
 internal static class HeadVisibilityController
 {
-    private const float HeadCameraClipRadius = 0.55f;
-    private const float ShoulderCameraClipRadius = 0.85f;
-    private const float MaxHeadPartExtent = 1.15f;
-    private const float MaxShoulderPartExtent = 1.4f;
+    private const float HeadSlotClipRadius = 0.55f;
+    private const float MaxHeadSlotExtent = 1.15f;
+    private const float MinHeadSlotHeight = 0.9f;
 
     private readonly struct RendererState
     {
@@ -26,37 +25,87 @@ internal static class HeadVisibilityController
     }
 
     private static readonly Dictionary<Renderer, RendererState> OriginalRendererStates = new();
-    private static readonly Dictionary<Transform, Vector3> OriginalBoneScales = new();
     private static readonly List<Renderer?> RenderersToRemove = new();
-    private static readonly List<Transform?> BonesToRemove = new();
 
     private static Player? _cachedPlayer;
     private static bool _active;
     private static float _nextRefreshTime;
 
-    private static readonly string[] HeadKeywords = { "head", "neck" };
-    private static readonly string[] HairKeywords = { "hair", "beard" };
-    private static readonly string[] FaceKeywords = { "face", "jaw", "eye", "brow", "mouth", "nose", "teeth" };
-    private static readonly string[] HelmetKeywords = { "helmet", "helm", "hat", "hood", "circlet", "crown", "headgear" };
-    private static readonly string[] ShoulderKeywords = { "shoulder" };
-    private static readonly string[] BackItemKeywords = { "back", "cape", "cloak" };
+    private static readonly string[] HeadSlotKeywords =
+    {
+        "head",
+        "hair",
+        "beard",
+        "face",
+        "jaw",
+        "eye",
+        "brow",
+        "mouth",
+        "nose",
+        "teeth",
+        "helmet",
+        "helm",
+        "hat",
+        "hood",
+        "circlet",
+        "crown",
+        "headgear",
+        "padded"
+    };
 
-    private static readonly string[] FullBodyKeywords = { "body", "player", "character", "human", "male", "female", "skin" };
-    private static readonly string[] WearableKeywords = { "helmet", "helm", "hat", "hood", "circlet", "crown", "headgear", "hair", "beard", "shoulder", "cape", "cloak", "back", "armor", "armour", "padded" };
+    private static readonly string[] HeldItemKeywords =
+    {
+        "hand",
+        "right",
+        "left",
+        "weapon",
+        "sword",
+        "axe",
+        "mace",
+        "hammer",
+        "club",
+        "knife",
+        "bow",
+        "arrow",
+        "shield",
+        "torch",
+        "tool",
+        "pickaxe",
+        "cultivator",
+        "fishing",
+        "itemstand"
+    };
+
+    private static readonly string[] BodyKeywords =
+    {
+        "body",
+        "torso",
+        "chest",
+        "arm",
+        "leg",
+        "foot",
+        "feet",
+        "hand",
+        "player",
+        "character",
+        "human",
+        "male",
+        "female",
+        "skin"
+    };
 
     internal static void Update(Player player)
     {
         if (player == null || player != Player.m_localPlayer)
             return;
 
-        bool shouldHide = Plugin.EnableMod.Value && FirstPersonState.Active && HasAnyVisibilityRuleEnabled();
+        bool shouldHide = Plugin.EnableMod.Value && FirstPersonState.Active && Plugin.HideHead.Value;
         Apply(player, shouldHide);
     }
 
     internal static void ForceVisible()
     {
         RestoreRendererStates();
-        RestoreBoneScales();
         ResetCache();
     }
 
@@ -76,12 +125,9 @@ internal static class HeadVisibilityController
         if (!_active)
         {
             OriginalRendererStates.Clear();
-            OriginalBoneScales.Clear();
             _active = true;
             _nextRefreshTime = 0f;
         }
-
-        ApplyBoneMode(player);
 
         if (Time.unscaledTime >= _nextRefreshTime)
         {
@@ -89,23 +135,7 @@ internal static class HeadVisibilityController
             _nextRefreshTime = Time.unscaledTime + 0.15f;
         }
 
-        HideCachedRenderers();
-    }
-
-    private static bool HasAnyVisibilityRuleEnabled()
-    {
-        return Plugin.HideHead.Value || Plugin.HideHair.Value || Plugin.HideFace.Value || Plugin.HideHelmet.Value || Plugin.HideShoulderPads.Value || Plugin.HideBackItems.Value;
-    }
-
-    private static void ApplyBoneMode(Player player)
-    {
-        if (Plugin.HeadHideModeConfig.Value == HeadHideModeOption.BoneShrink && Plugin.HideHead.Value)
-        {
-            ShrinkHeadBones(player);
-            return;
-        }
-
-        RestoreBoneScales();
+        HideCachedRenderersShadowsOnly();
     }
 
     private static void RefreshRendererCache(Player player)
@@ -120,7 +150,7 @@ internal static class HeadVisibilityController
             if (renderer == null)
                 continue;
 
-            if (ShouldHideRenderer(renderer))
+            if (ShouldHideHeadSlotRenderer(player, renderer))
                 desiredRenderers.Add(renderer);
         }
 
@@ -150,40 +180,48 @@ internal static class HeadVisibilityController
             if (!OriginalRendererStates.ContainsKey(renderer))
             {
                 OriginalRendererStates.Add(renderer, new RendererState(renderer));
-                Plugin.DebugLog($"First-person visibility matched renderer: {BuildRendererDescriptor(renderer)} | bounds={renderer.bounds.size}");
+                Plugin.DebugLog($"First-person head visibility matched renderer: {BuildRendererDescriptor(renderer)} | bounds={renderer.bounds.size}");
             }
         }
     }
 
-    private static bool ShouldHideRenderer(Renderer renderer)
+    private static bool ShouldHideHeadSlotRenderer(Player player, Renderer renderer)
     {
         string descriptor = BuildRendererDescriptor(renderer);
 
-        if (LooksLikeWholeBodyRenderer(renderer, descriptor))
+        if (LooksLikeHeldItem(descriptor))
             return false;
 
-        if (Plugin.HideHead.Value && Plugin.HeadHideModeConfig.Value != HeadHideModeOption.BoneShrink && ContainsAny(descriptor, HeadKeywords))
+        if (LooksLikeFullBodyRenderer(renderer, descriptor))
+            return false;
+
+        if (ContainsAny(descriptor, HeadSlotKeywords))
             return true;
 
-        if (Plugin.HideHair.Value && ContainsAny(descriptor, HairKeywords))
-            return true;
+        return IsSmallRendererNearHeadOrCamera(player, renderer);
+    }
 
-        if (Plugin.HideFace.Value && ContainsAny(descriptor, FaceKeywords))
-            return true;
+    private static bool IsSmallRendererNearHeadOrCamera(Player player, Renderer renderer)
+    {
+        Bounds bounds = renderer.bounds;
+        Vector3 size = bounds.size;
+        float largestExtent = Mathf.Max(size.x, size.y, size.z);
 
-        if (Plugin.HideHelmet.Value && ContainsAny(descriptor, HelmetKeywords))
-            return true;
+        if (largestExtent > MaxHeadSlotExtent)
+            return false;
 
-        if (Plugin.HideShoulderPads.Value && ContainsAny(descriptor, ShoulderKeywords))
-            return true;
+        float localY = player.transform.InverseTransformPoint(bounds.center).y;
 
-        if (Plugin.HideBackItems.Value && ContainsAny(descriptor, BackItemKeywords))
-            return true;
+        if (localY < MinHeadSlotHeight)
+            return false;
 
-        if (ShouldHideCameraClippingRenderer(renderer, descriptor))
-            return true;
+        Camera? camera = Camera.main;
 
-        return false;
+        if (camera == null)
+            return false;
+
+        Vector3 closestPoint = bounds.ClosestPoint(camera.transform.position);
+        return Vector3.Distance(closestPoint, camera.transform.position) <= HeadSlotClipRadius;
     }
 
     private static string BuildRendererDescriptor(Renderer renderer)
@@ -212,43 +250,20 @@ internal static class HeadVisibilityController
         return builder.ToString().ToLowerInvariant();
     }
 
-    private static bool LooksLikeWholeBodyRenderer(Renderer renderer, string descriptor)
+    private static bool LooksLikeHeldItem(string descriptor)
     {
-        Bounds bounds = renderer.bounds;
-        Vector3 size = bounds.size;
-        float largestExtent = Mathf.Max(size.x, size.y, size.z);
-        bool hasBodyName = ContainsAny(descriptor, FullBodyKeywords) && !ContainsAny(descriptor, WearableKeywords);
-        bool hasBodyScale = size.y > 1.2f && largestExtent > 1.4f && !ContainsAny(descriptor, WearableKeywords);
-
-        return hasBodyName || hasBodyScale;
+        return ContainsAny(descriptor, HeldItemKeywords);
     }
 
-    private static bool ShouldHideCameraClippingRenderer(Renderer renderer, string descriptor)
+    private static bool LooksLikeFullBodyRenderer(Renderer renderer, string descriptor)
     {
-        Camera? camera = Camera.main;
-
-        if (camera == null)
-            return false;
-
-        bool wantsHeadAreaHidden = Plugin.HideHead.Value || Plugin.HideHair.Value || Plugin.HideFace.Value || Plugin.HideHelmet.Value;
-        bool wantsShoulderAreaHidden = Plugin.HideShoulderPads.Value;
-
-        if (!wantsHeadAreaHidden && !wantsShoulderAreaHidden)
-            return false;
-
         Bounds bounds = renderer.bounds;
-        Vector3 closestPoint = bounds.ClosestPoint(camera.transform.position);
-        float distanceToCamera = Vector3.Distance(closestPoint, camera.transform.position);
         Vector3 size = bounds.size;
         float largestExtent = Mathf.Max(size.x, size.y, size.z);
+        bool bodyName = ContainsAny(descriptor, BodyKeywords) && !ContainsAny(descriptor, HeadSlotKeywords);
+        bool bodyScale = size.y > 1.2f && largestExtent > 1.4f;
 
-        if (wantsHeadAreaHidden && largestExtent <= MaxHeadPartExtent && distanceToCamera <= HeadCameraClipRadius)
-            return true;
-
-        if (wantsShoulderAreaHidden && largestExtent <= MaxShoulderPartExtent && distanceToCamera <= ShoulderCameraClipRadius)
-            return true;
-
-        return false;
+        return bodyName || bodyScale;
     }
 
     private static bool ContainsAny(string value, string[] keywords)
@@ -262,73 +277,16 @@ internal static class HeadVisibilityController
         return false;
     }
 
-    private static void HideCachedRenderers()
+    private static void HideCachedRenderersShadowsOnly()
     {
         foreach (Renderer renderer in OriginalRendererStates.Keys)
         {
             if (renderer == null)
                 continue;
 
-            if (Plugin.HeadHideModeConfig.Value == HeadHideModeOption.ShadowsOnly && ShouldUseShadowsOnly(renderer))
-            {
-                renderer.enabled = true;
-                renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
-                continue;
-            }
-
-            renderer.enabled = false;
+            renderer.enabled = true;
+            renderer.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
         }
-    }
-
-    private static bool ShouldUseShadowsOnly(Renderer renderer)
-    {
-        string descriptor = BuildRendererDescriptor(renderer);
-
-        if (LooksLikeWholeBodyRenderer(renderer, descriptor))
-            return false;
-
-        if (Plugin.HideHead.Value && ContainsAny(descriptor, HeadKeywords))
-            return true;
-
-        if (Plugin.HideHair.Value && ContainsAny(descriptor, HairKeywords))
-            return true;
-
-        if (Plugin.HideFace.Value && ContainsAny(descriptor, FaceKeywords))
-            return true;
-
-        if (Plugin.HideHelmet.Value && ContainsAny(descriptor, HelmetKeywords))
-            return true;
-
-        if (ShouldHideCameraClippingRenderer(renderer, descriptor))
-            return true;
-
-        return false;
-    }
-
-    private static void ShrinkHeadBones(Player player)
-    {
-        Transform[] transforms = player.GetComponentsInChildren<Transform>(true);
-
-        foreach (Transform transform in transforms)
-        {
-            if (transform == null || !IsHeadBone(transform))
-                continue;
-
-            if (!OriginalBoneScales.ContainsKey(transform))
-            {
-                OriginalBoneScales.Add(transform, transform.localScale);
-                Plugin.DebugLog($"Shrinking head bone: {RendererScanner.GetPath(transform)}");
-            }
-
-            transform.localScale = Vector3.one * 0.001f;
-        }
-
-        RemoveDestroyedBones();
-    }
-
-    private static bool IsHeadBone(Transform transform)
-    {
-        return transform.name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private static void RestoreRendererStates()
@@ -364,25 +322,6 @@ internal static class HeadVisibilityController
         }
     }
 
-    private static void RestoreBoneScales()
-    {
-        if (OriginalBoneScales.Count == 0)
-            return;
-
-        foreach (KeyValuePair<Transform, Vector3> entry in OriginalBoneScales)
-        {
-            Transform transform = entry.Key;
-
-            if (transform == null)
-                continue;
-
-            transform.localScale = entry.Value;
-        }
-
-        OriginalBoneScales.Clear();
-        BonesToRemove.Clear();
-    }
-
     private static void RemoveDestroyedRenderers()
     {
         RenderersToRemove.Clear();
@@ -402,33 +341,12 @@ internal static class HeadVisibilityController
         RenderersToRemove.Clear();
     }
 
-    private static void RemoveDestroyedBones()
-    {
-        BonesToRemove.Clear();
-
-        foreach (Transform transform in OriginalBoneScales.Keys)
-        {
-            if (transform == null)
-                BonesToRemove.Add(transform);
-        }
-
-        foreach (Transform? transform in BonesToRemove)
-        {
-            if (transform is not null)
-                OriginalBoneScales.Remove(transform);
-        }
-
-        BonesToRemove.Clear();
-    }
-
     private static void ResetCache()
     {
         _cachedPlayer = null;
         _active = false;
         _nextRefreshTime = 0f;
         OriginalRendererStates.Clear();
-        OriginalBoneScales.Clear();
         RenderersToRemove.Clear();
-        BonesToRemove.Clear();
     }
 }
