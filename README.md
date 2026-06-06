@@ -10,13 +10,15 @@ The camera tracks the player's animated head when possible, keeps the local body
 
 - Toggleable first-person mode.
 - Animated head-tracked camera anchor.
+- Forced first-person camera override for gameplay interactions that normally pull the camera back to third person.
+- Configurable head bob amount for motion sickness prevention.
 - Vanilla mouse and movement behavior preserved.
 - Body yaw can lock to the vanilla camera direction to avoid seeing your own back.
 - Local body visibility restoration while first person is active.
 - Head, hair, face, helmet, shoulder, cape, and back-item hiding are optional config choices.
 - Head hiding is disabled by default to avoid headless shadows.
 - Configurable FOV, near clip, camera offsets, and optional camera smoothing.
-- Camera override pauses during inventory, menu, and minimap use, restoring the head when temporarily leaving first person.
+- Camera override pauses during menu and minimap use, restoring the head when temporarily leaving first person.
 
 ## Default controls
 
@@ -24,6 +26,12 @@ The camera tracks the player's animated head when possible, keeps the local body
 | --- | --- |
 | Toggle first-person mode | `F6` |
 
+## Notable config options
+
+| Section | Option | Default | Description |
+| --- | --- | ---: | --- |
+| `Camera Overrides` | `OverrideForcedThirdPerson` | `true` | Keeps first person active during gameplay interactions that normally force third person, such as inventory, crafting, ships, hold fast, and attached states. |
+| `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much animation-based head movement affects the first-person camera. `0` disables head bob. `1` uses full tracked head motion. |
 
 ## Installation
 
@@ -45,4 +53,4 @@ If the mod behaves strangely after updating, back up and delete the old config f
 
 ## Credits
 
-Azumatt's First Person Mode for inpsiration.
+Azumatt's First Person Mode for inspiration.
