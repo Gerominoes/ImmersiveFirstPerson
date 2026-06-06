@@ -1,6 +1,6 @@
 {
   "name": "ImmersiveFirstPerson",
-  "version_number": "1.0.2",
+  "version_number": "1.1.2",
   "website_url": "https://github.com/Gerominoes/ImmersiveFirstPerson",
   "description": "A body-aware first-person camera for Valheim that tracks the player head while preserving vanilla controls.",
   "dependencies": [

@@ -1,5 +1,42 @@
 # Changelog
 
+## v1.1.2
+
+### Added
+
+* Added **forced first-person camera override** for gameplay states that normally push the camera back to third person, including inventory, crafting interactions, ships, hold fast, and attached states.
+* Added **HeadBobAmount** under `Camera Motion`.
+
+  * `0` keeps only filtered head tracking.
+  * `1` uses full animated head movement.
+  * Default: `0.5`
+
+### Changed
+
+* Reworked head bob reduction to use **filtered head tracking** instead of falling back to a stable eye anchor.
+* Simplified visibility settings.
+
+  * Removed separate hair, face, helmet, shoulder, back item, and renderer mode options.
+  * `HideHead` is now the only head visibility option.
+* `HideHead` now uses **shadows-only rendering** by default.
+
+  * The head and head-slot equipment are hidden from the first-person view.
+  * Player shadows are preserved.
+  * Held items should remain visible.
+
+### Fixed
+
+* Fixed the head bob slider not having a visible effect when camera smoothing was disabled.
+* Fixed head visibility options accidentally hiding the entire player body.
+* Fixed head hiding accidentally affecting held items.
+* Reduced camera clipping caused by helmets and head-slot equipment in first person.
+* Improved cleanup so hidden renderers are restored properly when first person is disabled or temporarily suppressed.
+
+### Notes
+
+Old config entries may still exist in existing generated config files, but the mod no longer uses them. For the cleanest test, delete the old config file and let the mod regenerate it.
+
+
 ## v1.0.2
 
 ANOTHER README FIX
