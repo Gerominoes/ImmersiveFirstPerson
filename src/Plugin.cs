@@ -6,13 +6,6 @@ using UnityEngine;
 
 namespace ImmersiveFirstPerson;
 
-internal enum HeadHideModeOption
-{
-    RendererDisable,
-    BoneShrink,
-    ShadowsOnly
-}
-
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
 [BepInProcess("valheim.exe")]
 public sealed class Plugin : BaseUnityPlugin
@@ -45,13 +38,7 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> BodyRotationFollowSpeed = null!;
 
     internal static ConfigEntry<bool> HideHead = null!;
-    internal static ConfigEntry<bool> HideHair = null!;
-    internal static ConfigEntry<bool> HideFace = null!;
-    internal static ConfigEntry<bool> HideHelmet = null!;
-    internal static ConfigEntry<bool> HideShoulderPads = null!;
-    internal static ConfigEntry<bool> HideBackItems = null!;
     internal static ConfigEntry<bool> ForceBodyVisible = null!;
-    internal static ConfigEntry<HeadHideModeOption> HeadHideModeConfig = null!;
 
     internal static ConfigEntry<bool> EnableDebugLogs = null!;
     internal static ConfigEntry<bool> LogRendererNames = null!;
@@ -89,14 +76,8 @@ public sealed class Plugin : BaseUnityPlugin
         LockBodyToCamera = Config.Bind("Camera", "LockBodyToCamera", true, "Rotate the local player body yaw to match vanilla camera yaw while first-person mode is active.");
         BodyRotationFollowSpeed = Config.Bind("Camera", "BodyRotationFollowSpeed", 0f, "How quickly the body rotates to the camera yaw. Set to 0 for instant body lock.");
 
-        HideHead = Config.Bind("Visibility", "HideHead", false, "Hide the local player's head while first-person mode is active. Disabled by default to preserve the normal character shadow.");
-        HideHair = Config.Bind("Visibility", "HideHair", false, "Hide the local player's hair while first-person mode is active. Disabled by default to preserve the normal character shadow.");
-        HideFace = Config.Bind("Visibility", "HideFace", false, "Hide face-related local player renderers while first-person mode is active. Disabled by default to preserve the normal character shadow.");
-        HideHelmet = Config.Bind("Visibility", "HideHelmet", false, "Hide the local player's helmet while first-person mode is active. Disabled by default to preserve the normal character shadow.");
-        HideShoulderPads = Config.Bind("Visibility", "HideShoulderPads", false, "Hide shoulder-related renderers if armor clips into the camera.");
-        HideBackItems = Config.Bind("Visibility", "HideBackItems", false, "Hide back, cape, and cloak renderers if they clip into the camera.");
-        ForceBodyVisible = Config.Bind("Visibility", "ForceBodyVisible", true, "Force the local player and non-head renderers visible while first-person mode is active.");
-        HeadHideModeConfig = Config.Bind("Visibility", "HeadHideMode", HeadHideModeOption.ShadowsOnly, "Optional fallback for head clipping. ShadowsOnly hides matched head renderers from the camera while preserving shadows. RendererDisable hides matched renderers completely. BoneShrink scales matched head bones down.");
+        HideHead = Config.Bind("Visibility", "HideHead", false, "Hide the local player's head and head-slot equipment from the first-person camera while preserving shadows.");
+        ForceBodyVisible = Config.Bind("Visibility", "ForceBodyVisible", true, "Force the local player body and held items visible while first-person mode is active.");
 
         EnableDebugLogs = Config.Bind("Debug", "EnableDebugLogs", false, "Enable extra logs for camera, state, visibility, and cleanup behavior.");
         LogRendererNames = Config.Bind("Debug", "LogRendererNames", false, "Log local player renderer names, paths, materials, and enabled states once when first-person mode activates.");
