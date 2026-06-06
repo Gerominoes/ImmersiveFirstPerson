@@ -9,7 +9,8 @@ namespace ImmersiveFirstPerson;
 internal enum HeadHideModeOption
 {
     RendererDisable,
-    BoneShrink
+    BoneShrink,
+    ShadowsOnly
 }
 
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
@@ -83,7 +84,7 @@ public sealed class Plugin : BaseUnityPlugin
             "HeadBobAmount",
             0.5f,
             new ConfigDescription(
-                "Controls how much animation-based head movement affects the first-person camera. 0 disables head bob. 1 uses full tracked head motion.",
+                "Controls how much fast animation-based head motion affects the first-person camera. 0 keeps only filtered head tracking. 1 uses full tracked head motion.",
                 new AcceptableValueRange<float>(0f, 1f)));
         LockBodyToCamera = Config.Bind("Camera", "LockBodyToCamera", true, "Rotate the local player body yaw to match vanilla camera yaw while first-person mode is active.");
         BodyRotationFollowSpeed = Config.Bind("Camera", "BodyRotationFollowSpeed", 0f, "How quickly the body rotates to the camera yaw. Set to 0 for instant body lock.");
@@ -95,7 +96,7 @@ public sealed class Plugin : BaseUnityPlugin
         HideShoulderPads = Config.Bind("Visibility", "HideShoulderPads", false, "Hide shoulder-related renderers if armor clips into the camera.");
         HideBackItems = Config.Bind("Visibility", "HideBackItems", false, "Hide back, cape, and cloak renderers if they clip into the camera.");
         ForceBodyVisible = Config.Bind("Visibility", "ForceBodyVisible", true, "Force the local player and non-head renderers visible while first-person mode is active.");
-        HeadHideModeConfig = Config.Bind("Visibility", "HeadHideMode", HeadHideModeOption.BoneShrink, "Optional fallback for head clipping. RendererDisable hides matched renderers. BoneShrink scales matched head bones down.");
+        HeadHideModeConfig = Config.Bind("Visibility", "HeadHideMode", HeadHideModeOption.ShadowsOnly, "Optional fallback for head clipping. ShadowsOnly hides matched head renderers from the camera while preserving shadows. RendererDisable hides matched renderers completely. BoneShrink scales matched head bones down.");
 
         EnableDebugLogs = Config.Bind("Debug", "EnableDebugLogs", false, "Enable extra logs for camera, state, visibility, and cleanup behavior.");
         LogRendererNames = Config.Bind("Debug", "LogRendererNames", false, "Log local player renderer names, paths, materials, and enabled states once when first-person mode activates.");
