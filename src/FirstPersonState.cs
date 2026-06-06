@@ -56,7 +56,7 @@ internal static class FirstPersonState
                player != null &&
                player == Player.m_localPlayer &&
                IsSafePlayerState(player) &&
-               !IsBlockingCameraUiVisible();
+               CanOverrideCurrentCameraContext();
     }
 
     internal static void ForceInactive()
@@ -87,14 +87,35 @@ internal static class FirstPersonState
 
     private static bool CanReadToggleInput()
     {
-        return !IsBlockingCameraUiVisible();
+        return !IsInputBlockingUiVisible();
     }
 
-    private static bool IsBlockingCameraUiVisible()
+    private static bool CanOverrideCurrentCameraContext()
+    {
+        if (!Plugin.OverrideForcedThirdPerson.Value)
+            return !IsAnyBlockingUiVisible() && !IsPlayerAttached();
+
+        if (IsHardCameraBlockVisible())
+            return false;
+
+        return true;
+    }
+
+    private static bool IsAnyBlockingUiVisible()
+    {
+        return IsInputBlockingUiVisible() || IsHardCameraBlockVisible();
+    }
+
+    private static bool IsInputBlockingUiVisible()
     {
         if (InventoryGui.IsVisible())
             return true;
 
+        return false;
+    }
+
+    private static bool IsHardCameraBlockVisible()
+    {
         if (Menu.IsVisible())
             return true;
 
@@ -109,9 +130,12 @@ internal static class FirstPersonState
         if (player.IsDead())
             return false;
 
-        if (player.IsAttached())
-            return false;
-
         return true;
+    }
+
+    private static bool IsPlayerAttached()
+    {
+        Player? player = Player.m_localPlayer;
+        return player != null && player.IsAttached();
     }
 }
