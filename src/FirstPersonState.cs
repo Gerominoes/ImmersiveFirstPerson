@@ -55,7 +55,8 @@ internal static class FirstPersonState
                Active &&
                player != null &&
                player == Player.m_localPlayer &&
-               IsSafePlayerState(player);
+               IsSafePlayerState(player) &&
+               !IsBlockingCameraUiVisible();
     }
 
     internal static void ForceInactive()
@@ -86,16 +87,21 @@ internal static class FirstPersonState
 
     private static bool CanReadToggleInput()
     {
+        return !IsBlockingCameraUiVisible();
+    }
+
+    private static bool IsBlockingCameraUiVisible()
+    {
         if (InventoryGui.IsVisible())
-            return false;
+            return true;
 
         if (Menu.IsVisible())
-            return false;
+            return true;
 
         if (Minimap.IsOpen())
-            return false;
+            return true;
 
-        return true;
+        return false;
     }
 
     private static bool IsSafePlayerState(Player player)

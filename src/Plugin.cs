@@ -28,6 +28,9 @@ public sealed class Plugin : BaseUnityPlugin
 
     internal static ConfigEntry<float> CameraVerticalOffset = null!;
     internal static ConfigEntry<float> CameraForwardOffset = null!;
+    internal static ConfigEntry<float> DownLookExtraForwardOffset = null!;
+    internal static ConfigEntry<float> DownLookExtraVerticalOffset = null!;
+    internal static ConfigEntry<float> CrouchVerticalOffset = null!;
     internal static ConfigEntry<float> NearClip = null!;
     internal static ConfigEntry<bool> UseCustomFov = null!;
     internal static ConfigEntry<float> Fov = null!;
@@ -58,9 +61,12 @@ public sealed class Plugin : BaseUnityPlugin
         ToggleFirstPersonKey = Config.Bind("Input", "ToggleFirstPersonKey", KeyCode.F6, "Press this key to toggle first-person mode.");
         DefaultToFirstPerson = Config.Bind("Input", "DefaultToFirstPerson", false, "Start in first-person mode when the local player is ready.");
 
-        CameraVerticalOffset = Config.Bind("Camera", "CameraVerticalOffset", 0.08f, "Vertical offset from the player's eye transform.");
-        CameraForwardOffset = Config.Bind("Camera", "CameraForwardOffset", 0.05f, "Forward offset from the player's eye transform.");
-        NearClip = Config.Bind("Camera", "NearClip", 0.03f, "Near clipping plane while first-person mode is active.");
+        CameraVerticalOffset = Config.Bind("Camera", "CameraVerticalOffset", 0.16f, "Vertical offset from the player's eye transform.");
+        CameraForwardOffset = Config.Bind("Camera", "CameraForwardOffset", 0.18f, "Forward offset from the player's eye transform to keep the torso out of the view.");
+        DownLookExtraForwardOffset = Config.Bind("Camera", "DownLookExtraForwardOffset", 0.18f, "Extra forward offset applied gradually when looking down.");
+        DownLookExtraVerticalOffset = Config.Bind("Camera", "DownLookExtraVerticalOffset", 0.08f, "Extra upward offset applied gradually when looking down.");
+        CrouchVerticalOffset = Config.Bind("Camera", "CrouchVerticalOffset", -0.45f, "Additional vertical camera offset while crouching or sneaking.");
+        NearClip = Config.Bind("Camera", "NearClip", 0.02f, "Near clipping plane while first-person mode is active.");
         UseCustomFov = Config.Bind("Camera", "UseCustomFov", true, "Use the configured first-person FOV.");
         Fov = Config.Bind("Camera", "FOV", 75f, "Field of view while first-person mode is active.");
         SmoothCamera = Config.Bind("Camera", "SmoothCamera", false, "Optional extra smoothing for camera position. Disabled by default so vanilla mouse behavior is preserved.");
