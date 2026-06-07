@@ -48,6 +48,10 @@ internal static class FirstPersonCamera
     private static Vector3 _filteredLocalHeadPosition;
     private static bool _hasFilteredHeadPosition;
 
+    private static Player? _attachedCameraPlayer;
+    private static Vector3 _attachedLocalCameraPosition;
+    private static bool _hasAttachedCameraPosition;
+
     internal static void Update(GameCamera gameCamera)
     {
         if (gameCamera == null)
@@ -68,12 +72,16 @@ internal static class FirstPersonCamera
             RestoreCamera(camera);
             ResetPositionSmoothing();
             ResetHeadBobFilter();
+            ResetAttachedCameraLock();
             RestoreLocalVisibilityForSuppressedCamera();
             return;
         }
 
         Quaternion vanillaCameraRotation = gameCamera.transform.rotation;
         bool lockAttachedCamera = ShouldLockAttachedCamera(player);
+
+        if (!lockAttachedCamera)
+            ResetAttachedCameraLock();
 
         if (Plugin.LockBodyToCamera.Value && !lockAttachedCamera)
             LockBodyYawToCamera(player, vanillaCameraRotation);
@@ -92,6 +100,7 @@ internal static class FirstPersonCamera
 
         ResetPositionSmoothing();
         ResetHeadBobFilter();
+        ResetAttachedCameraLock();
         ResetAnchorCache();
     }
 
@@ -177,7 +186,7 @@ internal static class FirstPersonCamera
         if (!hasHeadAnchor && isCrouchingOrSneaking)
             desiredPosition += Vector3.up * Plugin.CrouchVerticalOffset.Value;
 
-        ApplyCameraState(gameCamera, camera, desiredPosition, vanillaCameraRotation);
+        ApplyCameraState(gameCamera, camera, desiredPosition, vanillaCameraRotation, allowSmoothing: true);
     }
 
     private static void ApplyAttachedCamera(GameCamera gameCamera, Camera camera, Player player, Quaternion vanillaCameraRotation)
@@ -187,11 +196,50 @@ internal static class FirstPersonCamera
 
         Quaternion bodyRotation = player.transform.rotation;
         Quaternion limitedRotation = GetLimitedAttachedCameraRotation(bodyRotation, vanillaCameraRotation);
-        Vector3 desiredPosition = player.transform.position;
-        desiredPosition += Vector3.up * Plugin.AttachedCameraVerticalOffset.Value;
-        desiredPosition += bodyRotation * Vector3.forward * Plugin.AttachedCameraForwardOffset.Value;
+        Vector3 desiredPosition = GetAttachedCameraPosition(player, bodyRotation);
 
-        ApplyCameraState(gameCamera, camera, desiredPosition, limitedRotation);
+        ApplyCameraState(gameCamera, camera, desiredPosition, limitedRotation, allowSmoothing: false);
+    }
+
+    private static Vector3 GetAttachedCameraPosition(Player player, Quaternion bodyRotation)
+    {
+        if (_attachedCameraPlayer != player)
+            ResetAttachedCameraLock();
+
+        if (!_hasAttachedCameraPosition)
+        {
+            _attachedCameraPlayer = player;
+            _attachedLocalCameraPosition = CaptureAttachedLocalCameraPosition(player, bodyRotation);
+            _hasAttachedCameraPosition = true;
+            Plugin.DebugLog($"Captured attached camera local position: {_attachedLocalCameraPosition}");
+        }
+
+        Vector3 localOffset = _attachedLocalCameraPosition;
+        localOffset += Vector3.up * Plugin.AttachedCameraExtraVerticalOffset.Value;
+        localOffset += Vector3.forward * Plugin.AttachedCameraExtraForwardOffset.Value;
+        return player.transform.TransformPoint(localOffset);
+    }
+
+    private static Vector3 CaptureAttachedLocalCameraPosition(Player player, Quaternion bodyRotation)
+    {
+        Transform anchor = GetCameraAnchor(player);
+        Vector3 worldPosition = anchor != null ? anchor.position : GetFallbackEyePosition(player);
+        Vector3 flatForward = bodyRotation * Vector3.forward;
+        flatForward.y = 0f;
+
+        if (flatForward.sqrMagnitude > 0.0001f)
+            worldPosition += flatForward.normalized * Plugin.CameraForwardOffset.Value;
+
+        worldPosition += Vector3.up * Plugin.CameraVerticalOffset.Value;
+        return player.transform.InverseTransformPoint(worldPosition);
+    }
+
+    private static Vector3 GetFallbackEyePosition(Player player)
+    {
+        if (player.m_eye != null)
+            return player.m_eye.position;
+
+        return player.transform.position + Vector3.up * 1.6f;
     }
 
     private static Quaternion GetLimitedAttachedCameraRotation(Quaternion bodyRotation, Quaternion vanillaCameraRotation)
@@ -357,9 +405,9 @@ internal static class FirstPersonCamera
         return true;
     }
 
-    private static void ApplyCameraState(GameCamera gameCamera, Camera camera, Vector3 desiredPosition, Quaternion desiredRotation)
+    private static void ApplyCameraState(GameCamera gameCamera, Camera camera, Vector3 desiredPosition, Quaternion desiredRotation, bool allowSmoothing)
     {
-        ApplyTransform(gameCamera, camera, desiredPosition, desiredRotation);
+        ApplyTransform(gameCamera, camera, desiredPosition, desiredRotation, allowSmoothing);
 
         if (Plugin.UseCustomFov.Value)
             camera.fieldOfView = Mathf.Clamp(Plugin.Fov.Value, 40f, 120f);
@@ -367,11 +415,11 @@ internal static class FirstPersonCamera
         camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
     }
 
-    private static void ApplyTransform(GameCamera gameCamera, Camera camera, Vector3 desiredPosition, Quaternion desiredRotation)
+    private static void ApplyTransform(GameCamera gameCamera, Camera camera, Vector3 desiredPosition, Quaternion desiredRotation, bool allowSmoothing)
     {
         Vector3 finalPosition = desiredPosition;
 
-        if (Plugin.SmoothCamera.Value)
+        if (allowSmoothing && Plugin.SmoothCamera.Value)
         {
             if (!_hasSmoothPosition)
             {
@@ -419,6 +467,13 @@ internal static class FirstPersonCamera
         _filteredHeadPlayer = null;
         _hasFilteredHeadPosition = false;
         _filteredLocalHeadPosition = Vector3.zero;
+    }
+
+    private static void ResetAttachedCameraLock()
+    {
+        _attachedCameraPlayer = null;
+        _hasAttachedCameraPosition = false;
+        _attachedLocalCameraPosition = Vector3.zero;
     }
 
     private static void ResetAnchorCache()
