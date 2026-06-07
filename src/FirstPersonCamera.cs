@@ -73,11 +73,12 @@ internal static class FirstPersonCamera
         }
 
         Quaternion vanillaCameraRotation = gameCamera.transform.rotation;
+        bool lockAttachedCamera = ShouldLockAttachedCamera(player);
 
-        if (Plugin.LockBodyToCamera.Value)
+        if (Plugin.LockBodyToCamera.Value && !lockAttachedCamera)
             LockBodyYawToCamera(player, vanillaCameraRotation);
 
-        ApplyFirstPersonCamera(gameCamera, camera, player, vanillaCameraRotation);
+        ApplyFirstPersonCamera(gameCamera, camera, player, vanillaCameraRotation, lockAttachedCamera);
 
         LocalPlayerVisibilityOverride.ForceVisible(player);
         BodyVisibilityController.Update(player);
@@ -121,6 +122,11 @@ internal static class FirstPersonCamera
         HeadVisibilityController.ForceVisible();
     }
 
+    private static bool ShouldLockAttachedCamera(Player player)
+    {
+        return Plugin.LockCameraWhileAttached.Value && player.IsAttached();
+    }
+
     private static void LockBodyYawToCamera(Player player, Quaternion cameraRotation)
     {
         Vector3 forward = cameraRotation * Vector3.forward;
@@ -137,8 +143,14 @@ internal static class FirstPersonCamera
             : Quaternion.Slerp(player.transform.rotation, targetRotation, 1f - Mathf.Exp(-speed * Time.unscaledDeltaTime));
     }
 
-    private static void ApplyFirstPersonCamera(GameCamera gameCamera, Camera camera, Player player, Quaternion vanillaCameraRotation)
+    private static void ApplyFirstPersonCamera(GameCamera gameCamera, Camera camera, Player player, Quaternion vanillaCameraRotation, bool lockAttachedCamera)
     {
+        if (lockAttachedCamera)
+        {
+            ApplyAttachedCamera(gameCamera, camera, player, vanillaCameraRotation);
+            return;
+        }
+
         Transform anchor = GetCameraAnchor(player);
         bool hasHeadAnchor = anchor != null && Plugin.UseHeadTrackedAnchor.Value && anchor != player.m_eye;
         bool isCrouchingOrSneaking = IsCrouchingOrSneaking(player);
@@ -165,12 +177,50 @@ internal static class FirstPersonCamera
         if (!hasHeadAnchor && isCrouchingOrSneaking)
             desiredPosition += Vector3.up * Plugin.CrouchVerticalOffset.Value;
 
-        ApplyTransform(gameCamera, camera, desiredPosition, vanillaCameraRotation);
+        ApplyCameraState(gameCamera, camera, desiredPosition, vanillaCameraRotation);
+    }
 
-        if (Plugin.UseCustomFov.Value)
-            camera.fieldOfView = Mathf.Clamp(Plugin.Fov.Value, 40f, 120f);
+    private static void ApplyAttachedCamera(GameCamera gameCamera, Camera camera, Player player, Quaternion vanillaCameraRotation)
+    {
+        ResetHeadBobFilter();
+        ResetPositionSmoothing();
 
-        camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
+        Quaternion bodyRotation = player.transform.rotation;
+        Quaternion limitedRotation = GetLimitedAttachedCameraRotation(bodyRotation, vanillaCameraRotation);
+        Vector3 desiredPosition = player.transform.position;
+        desiredPosition += Vector3.up * Plugin.AttachedCameraVerticalOffset.Value;
+        desiredPosition += bodyRotation * Vector3.forward * Plugin.AttachedCameraForwardOffset.Value;
+
+        ApplyCameraState(gameCamera, camera, desiredPosition, limitedRotation);
+    }
+
+    private static Quaternion GetLimitedAttachedCameraRotation(Quaternion bodyRotation, Quaternion vanillaCameraRotation)
+    {
+        Quaternion localLook = Quaternion.Inverse(bodyRotation) * vanillaCameraRotation;
+        Vector3 localEuler = NormalizeEuler(localLook.eulerAngles);
+        float maxYaw = Mathf.Clamp(Plugin.AttachedCameraMaxYaw.Value, 0f, 180f);
+        float maxPitch = Mathf.Clamp(Plugin.AttachedCameraMaxPitch.Value, 1f, 89f);
+        float yaw = Mathf.Clamp(localEuler.y, -maxYaw, maxYaw);
+        float pitch = Mathf.Clamp(localEuler.x, -maxPitch, maxPitch);
+
+        return bodyRotation * Quaternion.Euler(pitch, yaw, 0f);
+    }
+
+    private static Vector3 NormalizeEuler(Vector3 euler)
+    {
+        return new Vector3(NormalizeAngle(euler.x), NormalizeAngle(euler.y), NormalizeAngle(euler.z));
+    }
+
+    private static float NormalizeAngle(float angle)
+    {
+        angle %= 360f;
+
+        if (angle > 180f)
+            angle -= 360f;
+        else if (angle < -180f)
+            angle += 360f;
+
+        return angle;
     }
 
     private static Vector3 GetHeadBobScaledAnchorPosition(Player player, Transform anchor, bool hasHeadAnchor)
@@ -305,6 +355,16 @@ internal static class FirstPersonCamera
 
         value = boolResult;
         return true;
+    }
+
+    private static void ApplyCameraState(GameCamera gameCamera, Camera camera, Vector3 desiredPosition, Quaternion desiredRotation)
+    {
+        ApplyTransform(gameCamera, camera, desiredPosition, desiredRotation);
+
+        if (Plugin.UseCustomFov.Value)
+            camera.fieldOfView = Mathf.Clamp(Plugin.Fov.Value, 40f, 120f);
+
+        camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
     }
 
     private static void ApplyTransform(GameCamera gameCamera, Camera camera, Vector3 desiredPosition, Quaternion desiredRotation)
