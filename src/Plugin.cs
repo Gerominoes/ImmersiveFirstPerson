@@ -21,6 +21,11 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> DefaultToFirstPerson = null!;
 
     internal static ConfigEntry<bool> OverrideForcedThirdPerson = null!;
+    internal static ConfigEntry<bool> LockCameraWhileAttached = null!;
+    internal static ConfigEntry<float> AttachedCameraVerticalOffset = null!;
+    internal static ConfigEntry<float> AttachedCameraForwardOffset = null!;
+    internal static ConfigEntry<float> AttachedCameraMaxYaw = null!;
+    internal static ConfigEntry<float> AttachedCameraMaxPitch = null!;
 
     internal static ConfigEntry<bool> UseHeadTrackedAnchor = null!;
     internal static ConfigEntry<float> CameraVerticalOffset = null!;
@@ -54,6 +59,23 @@ public sealed class Plugin : BaseUnityPlugin
         DefaultToFirstPerson = Config.Bind("Input", "DefaultToFirstPerson", false, "Start in first-person mode when the local player is ready.");
 
         OverrideForcedThirdPerson = Config.Bind("Camera Overrides", "OverrideForcedThirdPerson", true, "Keep first-person mode active during gameplay interactions that normally force third person, such as inventory, crafting, ships, hold fast, and attached states.");
+        LockCameraWhileAttached = Config.Bind("Camera Overrides", "LockCameraWhileAttached", true, "Lock the first-person camera to the body while attached to seats, ships, hold-fast points, and similar attach points. Reduces attachment jitter and rubberbanding.");
+        AttachedCameraVerticalOffset = Config.Bind("Camera Overrides", "AttachedCameraVerticalOffset", 1.55f, "Vertical camera offset from the player body while attached.");
+        AttachedCameraForwardOffset = Config.Bind("Camera Overrides", "AttachedCameraForwardOffset", 0.12f, "Forward camera offset from the player body while attached.");
+        AttachedCameraMaxYaw = Config.Bind(
+            "Camera Overrides",
+            "AttachedCameraMaxYaw",
+            80f,
+            new ConfigDescription(
+                "Maximum left/right camera yaw from the attached body direction.",
+                new AcceptableValueRange<float>(20f, 180f)));
+        AttachedCameraMaxPitch = Config.Bind(
+            "Camera Overrides",
+            "AttachedCameraMaxPitch",
+            55f,
+            new ConfigDescription(
+                "Maximum up/down camera pitch while attached.",
+                new AcceptableValueRange<float>(20f, 89f)));
 
         UseHeadTrackedAnchor = Config.Bind("Camera", "UseHeadTrackedAnchor", true, "Anchor the camera to the animated head bone when found. Falls back to the player eye transform.");
         CameraVerticalOffset = Config.Bind("Camera", "CameraVerticalOffset", 0.04f, "Vertical offset from the selected camera anchor.");
