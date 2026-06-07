@@ -11,6 +11,8 @@ internal static class HeadVisibilityController
     private const float HeadSlotClipRadius = 0.55f;
     private const float MaxHeadSlotExtent = 1.15f;
     private const float MinHeadSlotHeight = 0.9f;
+    private const float HeadShrinkScale = 0.001f;
+    private const float HeadSlotCompensationScale = 1f / HeadShrinkScale;
 
     private readonly struct RendererState
     {
@@ -26,8 +28,10 @@ internal static class HeadVisibilityController
 
     private static readonly Dictionary<Renderer, RendererState> OriginalRendererStates = new();
     private static readonly Dictionary<Transform, Vector3> OriginalBoneScales = new();
+    private static readonly Dictionary<Transform, Vector3> OriginalHeadSlotScales = new();
     private static readonly List<Renderer?> RenderersToRemove = new();
     private static readonly List<Transform?> BonesToRemove = new();
+    private static readonly List<Transform?> HeadSlotTransformsToRemove = new();
 
     private static Player? _cachedPlayer;
     private static bool _active;
@@ -49,6 +53,20 @@ internal static class HeadVisibilityController
         "helm",
         "hat",
         "hood",
+        "circlet",
+        "crown",
+        "headgear",
+        "padded"
+    };
+
+    private static readonly string[] HeadBoneRejectKeywords =
+    {
+        "helmet",
+        "helm",
+        "hat",
+        "hood",
+        "hair",
+        "beard",
         "circlet",
         "crown",
         "headgear",
@@ -107,8 +125,9 @@ internal static class HeadVisibilityController
 
     internal static void ForceVisible()
     {
-        RestoreRendererStates();
+        RestoreHeadSlotScales();
         RestoreBoneScales();
+        RestoreRendererStates();
         ResetCache();
     }
 
@@ -129,11 +148,10 @@ internal static class HeadVisibilityController
         {
             OriginalRendererStates.Clear();
             OriginalBoneScales.Clear();
+            OriginalHeadSlotScales.Clear();
             _active = true;
             _nextRefreshTime = 0f;
         }
-
-        ShrinkHeadBones(player);
 
         if (Time.unscaledTime >= _nextRefreshTime)
         {
@@ -141,12 +159,15 @@ internal static class HeadVisibilityController
             _nextRefreshTime = Time.unscaledTime + 0.15f;
         }
 
+        ShrinkHeadBones(player);
+        CompensateHeadSlotScales();
         HideCachedRenderersShadowsOnly();
     }
 
     private static void RefreshRendererCache(Player player)
     {
         RemoveDestroyedRenderers();
+        RemoveDestroyedHeadSlotTransforms();
 
         HashSet<Renderer> desiredRenderers = new();
         Renderer[] renderers = player.GetComponentsInChildren<Renderer>(true);
@@ -239,8 +260,14 @@ internal static class HeadVisibilityController
         if (renderer.transform != null)
             builder.Append(RendererScanner.GetPath(renderer.transform)).Append(' ');
 
-        if (renderer is SkinnedMeshRenderer skinnedMeshRenderer && skinnedMeshRenderer.sharedMesh != null)
-            builder.Append(skinnedMeshRenderer.sharedMesh.name).Append(' ');
+        if (renderer is SkinnedMeshRenderer skinnedMeshRenderer)
+        {
+            if (skinnedMeshRenderer.sharedMesh != null)
+                builder.Append(skinnedMeshRenderer.sharedMesh.name).Append(' ');
+
+            if (skinnedMeshRenderer.rootBone != null)
+                builder.Append(RendererScanner.GetPath(skinnedMeshRenderer.rootBone)).Append(' ');
+        }
 
         Material[] materials = renderer.sharedMaterials;
 
@@ -310,7 +337,7 @@ internal static class HeadVisibilityController
                 Plugin.DebugLog($"Shrinking local head bone for first-person view: {RendererScanner.GetPath(transform)}");
             }
 
-            transform.localScale = Vector3.one * 0.001f;
+            transform.localScale = Vector3.one * HeadShrinkScale;
         }
 
         RemoveDestroyedBones();
@@ -318,12 +345,62 @@ internal static class HeadVisibilityController
 
     private static bool IsHeadBone(Transform transform)
     {
+        string descriptor = $"{transform.name} {RendererScanner.GetPath(transform)}".ToLowerInvariant();
+
+        if (ContainsAny(descriptor, HeadBoneRejectKeywords))
+            return false;
+
         string name = transform.name;
         return name.Equals("head", StringComparison.OrdinalIgnoreCase) ||
                name.Equals("bip_head", StringComparison.OrdinalIgnoreCase) ||
                name.Equals("bip01 head", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("/head", StringComparison.OrdinalIgnoreCase) ||
                name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static void CompensateHeadSlotScales()
+    {
+        foreach (Renderer renderer in OriginalRendererStates.Keys)
+        {
+            if (renderer == null)
+                continue;
+
+            CompensateTransformIfUnderShrunkHead(renderer.transform);
+
+            if (renderer is SkinnedMeshRenderer skinnedMeshRenderer && skinnedMeshRenderer.rootBone != null)
+                CompensateTransformIfUnderShrunkHead(skinnedMeshRenderer.rootBone);
+        }
+
+        RemoveDestroyedHeadSlotTransforms();
+    }
+
+    private static void CompensateTransformIfUnderShrunkHead(Transform transform)
+    {
+        if (transform == null || !IsUnderShrunkHeadBone(transform))
+            return;
+
+        if (!OriginalHeadSlotScales.ContainsKey(transform))
+        {
+            OriginalHeadSlotScales.Add(transform, transform.localScale);
+            Plugin.DebugLog($"Compensating head-slot transform scale: {RendererScanner.GetPath(transform)}");
+        }
+
+        Vector3 originalScale = OriginalHeadSlotScales[transform];
+        transform.localScale = originalScale * HeadSlotCompensationScale;
+    }
+
+    private static bool IsUnderShrunkHeadBone(Transform transform)
+    {
+        Transform? current = transform.parent;
+
+        while (current != null)
+        {
+            if (OriginalBoneScales.ContainsKey(current))
+                return true;
+
+            current = current.parent;
+        }
+
+        return false;
     }
 
     private static void RestoreRendererStates()
@@ -378,6 +455,25 @@ internal static class HeadVisibilityController
         BonesToRemove.Clear();
     }
 
+    private static void RestoreHeadSlotScales()
+    {
+        if (OriginalHeadSlotScales.Count == 0)
+            return;
+
+        foreach (KeyValuePair<Transform, Vector3> entry in OriginalHeadSlotScales)
+        {
+            Transform transform = entry.Key;
+
+            if (transform == null)
+                continue;
+
+            transform.localScale = entry.Value;
+        }
+
+        OriginalHeadSlotScales.Clear();
+        HeadSlotTransformsToRemove.Clear();
+    }
+
     private static void RemoveDestroyedRenderers()
     {
         RenderersToRemove.Clear();
@@ -416,6 +512,25 @@ internal static class HeadVisibilityController
         BonesToRemove.Clear();
     }
 
+    private static void RemoveDestroyedHeadSlotTransforms()
+    {
+        HeadSlotTransformsToRemove.Clear();
+
+        foreach (Transform transform in OriginalHeadSlotScales.Keys)
+        {
+            if (transform == null)
+                HeadSlotTransformsToRemove.Add(transform);
+        }
+
+        foreach (Transform? transform in HeadSlotTransformsToRemove)
+        {
+            if (transform is not null)
+                OriginalHeadSlotScales.Remove(transform);
+        }
+
+        HeadSlotTransformsToRemove.Clear();
+    }
+
     private static void ResetCache()
     {
         _cachedPlayer = null;
@@ -423,7 +538,9 @@ internal static class HeadVisibilityController
         _nextRefreshTime = 0f;
         OriginalRendererStates.Clear();
         OriginalBoneScales.Clear();
+        OriginalHeadSlotScales.Clear();
         RenderersToRemove.Clear();
         BonesToRemove.Clear();
+        HeadSlotTransformsToRemove.Clear();
     }
 }
