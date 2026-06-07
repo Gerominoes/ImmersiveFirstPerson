@@ -1,24 +1,26 @@
 # Immersive First Person
 
-Immersive First Person is a Valheim mod that adds a body-aware first-person camera while preserving vanilla controls.
+A body-aware first-person camera for **Valheim**.
 
-The camera tracks the player's animated head when possible, keeps the local body visible, and avoids hiding the head by default so normal shadows are preserved.
+Immersive First Person lets you experience Valheim from your character's point of view while keeping the vanilla feel of movement, combat, sailing, and exploration. It is built to feel natural instead of turning the game into a detached free camera.
+
+The camera tracks your character's animated head when possible, keeps your body visible, and includes comfort options for players who are sensitive to motion.
 
 ![Immersive First Person SS](https://raw.githubusercontent.com/Gerominoes/ImmersiveFirstPerson/main/assets/demo.png)
 
-## Features
+## What it does
 
-- Toggleable first-person mode.
-- Animated head-tracked camera anchor.
-- Forced first-person camera override for gameplay interactions that normally pull the camera back to third person.
-- Configurable filtered head bob amount for motion sickness prevention.
-- Optional shadows-only head hiding to reduce camera clipping while preserving the local head shadow.
-- Vanilla mouse and movement behavior preserved.
-- Body yaw can lock to the vanilla camera direction to avoid seeing your own back.
-- Local body and held item visibility restoration while first person is active.
-- Head hiding is disabled by default to avoid headless shadows.
-- Configurable FOV, near clip, camera offsets, and optional camera smoothing.
-- Camera override pauses during menu and minimap use, restoring the head when temporarily leaving first person.
+- Adds a toggleable first-person mode.
+- Keeps the local player body visible for better immersion.
+- Tracks the animated head position when possible.
+- Keeps first person active during gameplay moments that normally force third person, such as inventory, crafting, ships, hold fast, and attached states.
+- Stabilizes the camera while seated, sailing, holding fast, or attached to objects.
+- Includes a head bob slider for motion sickness prevention.
+- Lets you optionally hide the head and head-slot equipment from the camera while preserving shadows where possible.
+- Keeps held items visible.
+- Preserves vanilla movement and mouse behavior.
+- Supports configurable FOV, near clip, camera offsets, body rotation, and attached-camera limits.
+- Temporarily restores normal visibility when the camera override is paused by menus or the minimap.
 
 ## Default controls
 
@@ -26,17 +28,58 @@ The camera tracks the player's animated head when possible, keeps the local body
 | --- | --- |
 | Toggle first-person mode | `F6` |
 
+You can change the keybind in the generated config file.
+
+## Recommended settings
+
+For the intended experience, start with:
+
+```ini
+[Camera Overrides]
+OverrideForcedThirdPerson = true
+LockCameraWhileAttached = true
+AttachedCameraExtraVerticalOffset = 0
+AttachedCameraExtraForwardOffset = 0.08
+AttachedCameraMaxYaw = 80
+AttachedCameraMaxPitch = 55
+
+[Camera Motion]
+HeadBobAmount = 0.5
+
+[Visibility]
+HideHead = false
+ForceBodyVisible = true
+```
+
+If you see your character's head or helmet clipping into the camera, enable:
+
+```ini
+[Visibility]
+HideHead = true
+```
+
 ## Notable config options
 
 | Section | Option | Default | Description |
 | --- | --- | ---: | --- |
-| `Camera Overrides` | `OverrideForcedThirdPerson` | `true` | Keeps first person active during gameplay interactions that normally force third person, such as inventory, crafting, ships, hold fast, and attached states. |
-| `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much fast animation-based head movement affects the first-person camera. `0` keeps only filtered head tracking. `1` uses full tracked head motion. |
-| `Visibility` | `HideHead` | `false` | Hides the local head model and head-slot equipment from the first-person camera using shadows-only rendering. Held items remain visible. |
+| `Camera Overrides` | `OverrideForcedThirdPerson` | `true` | Keeps first person active during gameplay interactions that normally force third person. |
+| `Camera Overrides` | `LockCameraWhileAttached` | `true` | Locks the camera to a captured head-level body offset while attached to seats, ships, hold-fast points, and similar attach points. |
+| `Camera Overrides` | `AttachedCameraExtraVerticalOffset` | `0` | Extra vertical offset added to the captured head-level camera position while attached. |
+| `Camera Overrides` | `AttachedCameraExtraForwardOffset` | `0.08` | Extra forward offset added to the captured head-level camera position while attached. |
+| `Camera Overrides` | `AttachedCameraMaxYaw` | `80` | Maximum left/right camera yaw from the attached body direction. |
+| `Camera Overrides` | `AttachedCameraMaxPitch` | `55` | Maximum up/down camera pitch while attached. |
+| `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much fast animation-based head movement affects the camera. `0` keeps only filtered head tracking. `1` uses full tracked head motion. |
+| `Visibility` | `HideHead` | `false` | Hides the local head model and head-slot equipment from the camera. Head-slot equipment keeps casting shadows where possible. Held items remain visible. |
 
 ## Installation
 
-Install with a mod manager, or place `ImmersiveFirstPerson.dll` in:
+### Mod manager
+
+Install through your preferred Valheim mod manager.
+
+### Manual install
+
+Place `ImmersiveFirstPerson.dll` in:
 
 ```text
 Valheim/BepInEx/plugins/ImmersiveFirstPerson/
@@ -44,14 +87,30 @@ Valheim/BepInEx/plugins/ImmersiveFirstPerson/
 
 Launch the game once to generate the config file.
 
-## Compatibility
-
-This mod changes camera placement and local player visibility. It may conflict with mods that heavily modify the player camera, character skeleton, animation rig, or local player rendering.
-
 ## Updating from older versions
 
 If the mod behaves strangely after updating, back up and delete the old config file, then launch the game once to regenerate it.
 
+This is especially useful after updates that add, rename, or remove config options.
+
+## Compatibility
+
+This mod changes camera placement and local player visibility. It may conflict with mods that heavily modify:
+
+- the player camera
+- the character skeleton or animation rig
+- local player rendering
+- ships
+- sitting or attachment behavior
+
+Most ordinary gameplay, content, and UI mods should be fine.
+
 ## Credits
 
-Azumatt's First Person Mode for inspiration.
+Inspired by Azumatt's First Person Mode.
+
+## Support
+
+If you enjoy the mod and want to support future updates, you can buy me a coffee on Ko-fi.
+
+<a href='https://ko-fi.com/V1U520WS5N' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi5.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>

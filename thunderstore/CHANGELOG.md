@@ -1,5 +1,96 @@
 # Changelog
 
+## v1.2.0
+
+## Added
+
+* Added first-person support for more gameplay states that normally force third person.
+
+  * Inventory
+  * Crafting
+  * Ships
+  * Hold fast
+  * Sitting / attached states
+
+* Added attached camera lock for ships, seats, hold-fast points, and similar attachment states.
+
+  * The camera now locks to a captured head-level body position while attached.
+  * This reduces sailing rubberbanding and seated camera jitter.
+  * Look movement is limited while attached to prevent extreme camera/body mismatch.
+
+* Added configurable attached camera settings:
+
+```ini
+[Camera Overrides]
+LockCameraWhileAttached = true
+AttachedCameraExtraVerticalOffset = 0
+AttachedCameraExtraForwardOffset = 0.08
+AttachedCameraMaxYaw = 80
+AttachedCameraMaxPitch = 55
+```
+
+* Added `HeadBobAmount` under `Camera Motion`.
+
+```ini
+[Camera Motion]
+HeadBobAmount = 0.5
+```
+
+## Changed
+
+* Reworked head bob reduction.
+
+  * `HeadBobAmount = 0` now uses filtered head tracking.
+  * `HeadBobAmount = 1` uses full animated head movement.
+  * This keeps the camera tied to the character while reducing motion sickness.
+
+* Reworked `HideHead`.
+
+  * `HideHead` is now the single visibility option for head clipping.
+  * Removed separate hide options for hair, face, helmet, shoulders, and back items.
+  * Head-slot equipment is hidden from the camera while preserving shadows where possible.
+  * Held items remain visible.
+
+* Improved the README.
+
+  * Friendlier introduction.
+  * Clearer feature list.
+  * Recommended settings section.
+  * Cleaner install and compatibility sections.
+  * Added Ko-fi support link.
+
+## Removed
+
+* Removed camera smoothing and its config options.
+
+  * `SmoothCamera`
+  * `CameraSmoothing`
+
+* Removed the old visibility mode options.
+
+  * `RendererDisable`
+  * `BoneShrink`
+  * `ShadowsOnly` as a user-facing option
+
+* Removed extra body-part visibility toggles.
+
+  * `HideHair`
+  * `HideFace`
+  * `HideHelmet`
+  * `HideShoulderPads`
+  * `HideBackItems`
+
+## Fixed
+
+* Fixed first-person camera rubberbanding while sailing in attached states.
+* Fixed seated and hold-fast camera placement showing the player head.
+* Fixed head bob slider not having a noticeable effect.
+* Fixed head hiding accidentally affecting held items.
+* Fixed head hiding collapsing helmet/head-slot equipment.
+* Fixed helmet/head-slot shadows being misplaced after hiding the head.
+* Fixed visibility restoration when first person is disabled or temporarily suppressed.
+* Reduced camera clipping from helmets and head-slot equipment.
+
 ## v1.1.2
 
 ### Added

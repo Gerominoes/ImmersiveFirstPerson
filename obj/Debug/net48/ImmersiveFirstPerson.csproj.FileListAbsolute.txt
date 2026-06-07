@@ -1,8 +1,0 @@
-C:\Dev\ValheimMods\ImmersiveFirstPerson\bin\Debug\net48\ImmersiveFirstPerson.dll
-C:\Dev\ValheimMods\ImmersiveFirstPerson\bin\Debug\net48\ImmersiveFirstPerson.pdb
-C:\Dev\ValheimMods\ImmersiveFirstPerson\obj\Debug\net48\ImmersiveFirstPerson.csproj.AssemblyReference.cache
-C:\Dev\ValheimMods\ImmersiveFirstPerson\obj\Debug\net48\ImmersiveFirstPerson.GeneratedMSBuildEditorConfig.editorconfig
-C:\Dev\ValheimMods\ImmersiveFirstPerson\obj\Debug\net48\ImmersiveFirstPerson.csproj.CoreCompileInputs.cache
-C:\Dev\ValheimMods\ImmersiveFirstPerson\obj\Debug\net48\ImmersiveFirstPerson.sourcelink.json
-C:\Dev\ValheimMods\ImmersiveFirstPerson\obj\Debug\net48\ImmersiveFirstPerson.dll
-C:\Dev\ValheimMods\ImmersiveFirstPerson\obj\Debug\net48\ImmersiveFirstPerson.pdb
