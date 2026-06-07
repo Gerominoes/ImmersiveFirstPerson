@@ -26,9 +26,21 @@ internal static class HeadVisibilityController
         }
     }
 
+    private readonly struct TransformState
+    {
+        internal readonly Vector3 LocalPosition;
+        internal readonly Vector3 LocalScale;
+
+        internal TransformState(Transform transform)
+        {
+            LocalPosition = transform.localPosition;
+            LocalScale = transform.localScale;
+        }
+    }
+
     private static readonly Dictionary<Renderer, RendererState> OriginalRendererStates = new();
     private static readonly Dictionary<Transform, Vector3> OriginalBoneScales = new();
-    private static readonly Dictionary<Transform, Vector3> OriginalHeadSlotScales = new();
+    private static readonly Dictionary<Transform, TransformState> OriginalHeadSlotStates = new();
     private static readonly List<Renderer?> RenderersToRemove = new();
     private static readonly List<Transform?> BonesToRemove = new();
     private static readonly List<Transform?> HeadSlotTransformsToRemove = new();
@@ -125,7 +137,7 @@ internal static class HeadVisibilityController
 
     internal static void ForceVisible()
     {
-        RestoreHeadSlotScales();
+        RestoreHeadSlotStates();
         RestoreBoneScales();
         RestoreRendererStates();
         ResetCache();
@@ -148,7 +160,7 @@ internal static class HeadVisibilityController
         {
             OriginalRendererStates.Clear();
             OriginalBoneScales.Clear();
-            OriginalHeadSlotScales.Clear();
+            OriginalHeadSlotStates.Clear();
             _active = true;
             _nextRefreshTime = 0f;
         }
@@ -160,7 +172,7 @@ internal static class HeadVisibilityController
         }
 
         ShrinkHeadBones(player);
-        CompensateHeadSlotScales();
+        CompensateHeadSlotTransforms();
         HideCachedRenderersShadowsOnly();
     }
 
@@ -357,7 +369,7 @@ internal static class HeadVisibilityController
                name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
-    private static void CompensateHeadSlotScales()
+    private static void CompensateHeadSlotTransforms()
     {
         foreach (Renderer renderer in OriginalRendererStates.Keys)
         {
@@ -375,32 +387,38 @@ internal static class HeadVisibilityController
 
     private static void CompensateTransformIfUnderShrunkHead(Transform transform)
     {
-        if (transform == null || !IsUnderShrunkHeadBone(transform))
+        Transform? compensationRoot = FindCompensationRootUnderShrunkHead(transform);
+
+        if (compensationRoot == null)
             return;
 
-        if (!OriginalHeadSlotScales.ContainsKey(transform))
+        if (!OriginalHeadSlotStates.ContainsKey(compensationRoot))
         {
-            OriginalHeadSlotScales.Add(transform, transform.localScale);
-            Plugin.DebugLog($"Compensating head-slot transform scale: {RendererScanner.GetPath(transform)}");
+            OriginalHeadSlotStates.Add(compensationRoot, new TransformState(compensationRoot));
+            Plugin.DebugLog($"Compensating head-slot transform position and scale: {RendererScanner.GetPath(compensationRoot)}");
         }
 
-        Vector3 originalScale = OriginalHeadSlotScales[transform];
-        transform.localScale = originalScale * HeadSlotCompensationScale;
+        TransformState originalState = OriginalHeadSlotStates[compensationRoot];
+        compensationRoot.localPosition = originalState.LocalPosition * HeadSlotCompensationScale;
+        compensationRoot.localScale = originalState.LocalScale * HeadSlotCompensationScale;
     }
 
-    private static bool IsUnderShrunkHeadBone(Transform transform)
+    private static Transform? FindCompensationRootUnderShrunkHead(Transform transform)
     {
-        Transform? current = transform.parent;
+        if (transform == null || OriginalBoneScales.ContainsKey(transform))
+            return null;
 
-        while (current != null)
+        Transform current = transform;
+
+        while (current.parent != null)
         {
-            if (OriginalBoneScales.ContainsKey(current))
-                return true;
+            if (OriginalBoneScales.ContainsKey(current.parent))
+                return current;
 
             current = current.parent;
         }
 
-        return false;
+        return null;
     }
 
     private static void RestoreRendererStates()
@@ -455,22 +473,23 @@ internal static class HeadVisibilityController
         BonesToRemove.Clear();
     }
 
-    private static void RestoreHeadSlotScales()
+    private static void RestoreHeadSlotStates()
     {
-        if (OriginalHeadSlotScales.Count == 0)
+        if (OriginalHeadSlotStates.Count == 0)
             return;
 
-        foreach (KeyValuePair<Transform, Vector3> entry in OriginalHeadSlotScales)
+        foreach (KeyValuePair<Transform, TransformState> entry in OriginalHeadSlotStates)
         {
             Transform transform = entry.Key;
 
             if (transform == null)
                 continue;
 
-            transform.localScale = entry.Value;
+            transform.localPosition = entry.Value.LocalPosition;
+            transform.localScale = entry.Value.LocalScale;
         }
 
-        OriginalHeadSlotScales.Clear();
+        OriginalHeadSlotStates.Clear();
         HeadSlotTransformsToRemove.Clear();
     }
 
@@ -516,7 +535,7 @@ internal static class HeadVisibilityController
     {
         HeadSlotTransformsToRemove.Clear();
 
-        foreach (Transform transform in OriginalHeadSlotScales.Keys)
+        foreach (Transform transform in OriginalHeadSlotStates.Keys)
         {
             if (transform == null)
                 HeadSlotTransformsToRemove.Add(transform);
@@ -525,7 +544,7 @@ internal static class HeadVisibilityController
         foreach (Transform? transform in HeadSlotTransformsToRemove)
         {
             if (transform is not null)
-                OriginalHeadSlotScales.Remove(transform);
+                OriginalHeadSlotStates.Remove(transform);
         }
 
         HeadSlotTransformsToRemove.Clear();
@@ -538,7 +557,7 @@ internal static class HeadVisibilityController
         _nextRefreshTime = 0f;
         OriginalRendererStates.Clear();
         OriginalBoneScales.Clear();
-        OriginalHeadSlotScales.Clear();
+        OriginalHeadSlotStates.Clear();
         RenderersToRemove.Clear();
         BonesToRemove.Clear();
         HeadSlotTransformsToRemove.Clear();
