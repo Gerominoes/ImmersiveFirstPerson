@@ -11,13 +11,14 @@ The camera tracks the player's animated head when possible, keeps the local body
 - Toggleable first-person mode.
 - Animated head-tracked camera anchor.
 - Forced first-person camera override for gameplay interactions that normally pull the camera back to third person.
+- Attached camera lock for ships, seats, hold-fast points, and similar attached states.
 - Configurable filtered head bob amount for motion sickness prevention.
-- Optional shadows-only head hiding to reduce camera clipping while preserving the local head shadow.
+- Optional head hiding to reduce camera clipping while preserving head-slot equipment shadows.
 - Vanilla mouse and movement behavior preserved.
 - Body yaw can lock to the vanilla camera direction to avoid seeing your own back.
 - Local body and held item visibility restoration while first person is active.
 - Head hiding is disabled by default to avoid headless shadows.
-- Configurable FOV, near clip, camera offsets, and optional camera smoothing.
+- Configurable FOV, near clip, and camera offsets.
 - Camera override pauses during menu and minimap use, restoring the head when temporarily leaving first person.
 
 ## Default controls
@@ -31,8 +32,13 @@ The camera tracks the player's animated head when possible, keeps the local body
 | Section | Option | Default | Description |
 | --- | --- | ---: | --- |
 | `Camera Overrides` | `OverrideForcedThirdPerson` | `true` | Keeps first person active during gameplay interactions that normally force third person, such as inventory, crafting, ships, hold fast, and attached states. |
+| `Camera Overrides` | `LockCameraWhileAttached` | `true` | Locks the camera to a captured head-level body offset while attached to seats, ships, hold-fast points, and similar attach points. |
+| `Camera Overrides` | `AttachedCameraExtraVerticalOffset` | `0` | Extra vertical offset added to the captured head-level camera position while attached. |
+| `Camera Overrides` | `AttachedCameraExtraForwardOffset` | `0.08` | Extra forward offset added to the captured head-level camera position while attached. |
+| `Camera Overrides` | `AttachedCameraMaxYaw` | `80` | Maximum left/right camera yaw from the attached body direction. |
+| `Camera Overrides` | `AttachedCameraMaxPitch` | `55` | Maximum up/down camera pitch while attached. |
 | `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much fast animation-based head movement affects the first-person camera. `0` keeps only filtered head tracking. `1` uses full tracked head motion. |
-| `Visibility` | `HideHead` | `false` | Hides the local head model and head-slot equipment from the first-person camera using shadows-only rendering. Held items remain visible. |
+| `Visibility` | `HideHead` | `false` | Hides the local head model and head-slot equipment from the first-person camera. Head-slot equipment keeps casting shadows where possible. Held items remain visible. |
 
 ## Installation
 
@@ -46,7 +52,7 @@ Launch the game once to generate the config file.
 
 ## Compatibility
 
-This mod changes camera placement and local player visibility. It may conflict with mods that heavily modify the player camera, character skeleton, animation rig, or local player rendering.
+This mod changes camera placement and local player visibility. It may conflict with mods that heavily modify the player camera, character skeleton, animation rig, local player rendering, ships, or sitting/attachment behavior.
 
 ## Updating from older versions
 

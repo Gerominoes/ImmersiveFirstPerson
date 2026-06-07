@@ -21,6 +21,11 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> DefaultToFirstPerson = null!;
 
     internal static ConfigEntry<bool> OverrideForcedThirdPerson = null!;
+    internal static ConfigEntry<bool> LockCameraWhileAttached = null!;
+    internal static ConfigEntry<float> AttachedCameraExtraVerticalOffset = null!;
+    internal static ConfigEntry<float> AttachedCameraExtraForwardOffset = null!;
+    internal static ConfigEntry<float> AttachedCameraMaxYaw = null!;
+    internal static ConfigEntry<float> AttachedCameraMaxPitch = null!;
 
     internal static ConfigEntry<bool> UseHeadTrackedAnchor = null!;
     internal static ConfigEntry<float> CameraVerticalOffset = null!;
@@ -31,8 +36,6 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> NearClip = null!;
     internal static ConfigEntry<bool> UseCustomFov = null!;
     internal static ConfigEntry<float> Fov = null!;
-    internal static ConfigEntry<bool> SmoothCamera = null!;
-    internal static ConfigEntry<float> CameraSmoothing = null!;
     internal static ConfigEntry<float> HeadBobAmount = null!;
     internal static ConfigEntry<bool> LockBodyToCamera = null!;
     internal static ConfigEntry<float> BodyRotationFollowSpeed = null!;
@@ -54,6 +57,11 @@ public sealed class Plugin : BaseUnityPlugin
         DefaultToFirstPerson = Config.Bind("Input", "DefaultToFirstPerson", false, "Start in first-person mode when the local player is ready.");
 
         OverrideForcedThirdPerson = Config.Bind("Camera Overrides", "OverrideForcedThirdPerson", true, "Keep first-person mode active during gameplay interactions that normally force third person, such as inventory, crafting, ships, hold fast, and attached states.");
+        LockCameraWhileAttached = Config.Bind("Camera Overrides", "LockCameraWhileAttached", true, "Lock the first-person camera to a captured head-level body offset while attached to seats, ships, hold-fast points, and similar attach points. Reduces attachment jitter and rubberbanding.");
+        AttachedCameraExtraVerticalOffset = Config.Bind("Camera Overrides", "AttachedCameraExtraVerticalOffset", 0f, "Extra vertical offset added to the captured head-level camera position while attached.");
+        AttachedCameraExtraForwardOffset = Config.Bind("Camera Overrides", "AttachedCameraExtraForwardOffset", 0.08f, "Extra forward offset added to the captured head-level camera position while attached.");
+        AttachedCameraMaxYaw = Config.Bind("Camera Overrides", "AttachedCameraMaxYaw", 80f, new ConfigDescription("Maximum left/right camera yaw from the attached body direction.", new AcceptableValueRange<float>(20f, 180f)));
+        AttachedCameraMaxPitch = Config.Bind("Camera Overrides", "AttachedCameraMaxPitch", 55f, new ConfigDescription("Maximum up/down camera pitch while attached.", new AcceptableValueRange<float>(20f, 89f)));
 
         UseHeadTrackedAnchor = Config.Bind("Camera", "UseHeadTrackedAnchor", true, "Anchor the camera to the animated head bone when found. Falls back to the player eye transform.");
         CameraVerticalOffset = Config.Bind("Camera", "CameraVerticalOffset", 0.04f, "Vertical offset from the selected camera anchor.");
@@ -64,15 +72,7 @@ public sealed class Plugin : BaseUnityPlugin
         NearClip = Config.Bind("Camera", "NearClip", 0.02f, "Near clipping plane while first-person mode is active.");
         UseCustomFov = Config.Bind("Camera", "UseCustomFov", true, "Use the configured first-person FOV.");
         Fov = Config.Bind("Camera", "FOV", 75f, "Field of view while first-person mode is active.");
-        SmoothCamera = Config.Bind("Camera", "SmoothCamera", false, "Optional extra smoothing for camera position. Disabled by default so vanilla mouse behavior is preserved.");
-        CameraSmoothing = Config.Bind("Camera", "CameraSmoothing", 18f, "How quickly the camera moves toward the first-person target if SmoothCamera is enabled.");
-        HeadBobAmount = Config.Bind(
-            "Camera Motion",
-            "HeadBobAmount",
-            0.5f,
-            new ConfigDescription(
-                "Controls how much fast animation-based head motion affects the first-person camera. 0 keeps only filtered head tracking. 1 uses full tracked head motion.",
-                new AcceptableValueRange<float>(0f, 1f)));
+        HeadBobAmount = Config.Bind("Camera Motion", "HeadBobAmount", 0.5f, new ConfigDescription("Controls how much fast animation-based head motion affects the first-person camera. 0 keeps only filtered head tracking. 1 uses full tracked head motion.", new AcceptableValueRange<float>(0f, 1f)));
         LockBodyToCamera = Config.Bind("Camera", "LockBodyToCamera", true, "Rotate the local player body yaw to match vanilla camera yaw while first-person mode is active.");
         BodyRotationFollowSpeed = Config.Bind("Camera", "BodyRotationFollowSpeed", 0f, "How quickly the body rotates to the camera yaw. Set to 0 for instant body lock.");
 
