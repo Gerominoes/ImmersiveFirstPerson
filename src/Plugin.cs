@@ -36,8 +36,6 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> NearClip = null!;
     internal static ConfigEntry<bool> UseCustomFov = null!;
     internal static ConfigEntry<float> Fov = null!;
-    internal static ConfigEntry<bool> SmoothCamera = null!;
-    internal static ConfigEntry<float> CameraSmoothing = null!;
     internal static ConfigEntry<float> HeadBobAmount = null!;
     internal static ConfigEntry<bool> LockBodyToCamera = null!;
     internal static ConfigEntry<float> BodyRotationFollowSpeed = null!;
@@ -74,8 +72,6 @@ public sealed class Plugin : BaseUnityPlugin
         NearClip = Config.Bind("Camera", "NearClip", 0.02f, "Near clipping plane while first-person mode is active.");
         UseCustomFov = Config.Bind("Camera", "UseCustomFov", true, "Use the configured first-person FOV.");
         Fov = Config.Bind("Camera", "FOV", 75f, "Field of view while first-person mode is active.");
-        SmoothCamera = Config.Bind("Camera", "SmoothCamera", false, "Optional extra smoothing for camera position. Disabled by default so vanilla mouse behavior is preserved.");
-        CameraSmoothing = Config.Bind("Camera", "CameraSmoothing", 18f, "How quickly the camera moves toward the first-person target if SmoothCamera is enabled.");
         HeadBobAmount = Config.Bind("Camera Motion", "HeadBobAmount", 0.5f, new ConfigDescription("Controls how much fast animation-based head motion affects the first-person camera. 0 keeps only filtered head tracking. 1 uses full tracked head motion.", new AcceptableValueRange<float>(0f, 1f)));
         LockBodyToCamera = Config.Bind("Camera", "LockBodyToCamera", true, "Rotate the local player body yaw to match vanilla camera yaw while first-person mode is active.");
         BodyRotationFollowSpeed = Config.Bind("Camera", "BodyRotationFollowSpeed", 0f, "How quickly the body rotates to the camera yaw. Set to 0 for instant body lock.");
