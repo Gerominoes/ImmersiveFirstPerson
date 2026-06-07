@@ -41,9 +41,6 @@ internal static class FirstPersonCamera
     private static float _originalNearClip;
     private static bool _savedOriginals;
 
-    private static Vector3 _smoothPosition;
-    private static bool _hasSmoothPosition;
-
     private static Player? _filteredHeadPlayer;
     private static Vector3 _filteredLocalHeadPosition;
     private static bool _hasFilteredHeadPosition;
@@ -70,7 +67,6 @@ internal static class FirstPersonCamera
         if (player == null || !FirstPersonState.ShouldApplyCamera(player))
         {
             RestoreCamera(camera);
-            ResetPositionSmoothing();
             ResetHeadBobFilter();
             ResetAttachedCameraLock();
             RestoreLocalVisibilityForSuppressedCamera();
@@ -98,7 +94,6 @@ internal static class FirstPersonCamera
         if (_lastCamera != null)
             RestoreCamera(_lastCamera);
 
-        ResetPositionSmoothing();
         ResetHeadBobFilter();
         ResetAttachedCameraLock();
         ResetAnchorCache();
@@ -186,19 +181,18 @@ internal static class FirstPersonCamera
         if (!hasHeadAnchor && isCrouchingOrSneaking)
             desiredPosition += Vector3.up * Plugin.CrouchVerticalOffset.Value;
 
-        ApplyCameraState(gameCamera, camera, desiredPosition, vanillaCameraRotation, allowSmoothing: true);
+        ApplyCameraState(gameCamera, camera, desiredPosition, vanillaCameraRotation);
     }
 
     private static void ApplyAttachedCamera(GameCamera gameCamera, Camera camera, Player player, Quaternion vanillaCameraRotation)
     {
         ResetHeadBobFilter();
-        ResetPositionSmoothing();
 
         Quaternion bodyRotation = player.transform.rotation;
         Quaternion limitedRotation = GetLimitedAttachedCameraRotation(bodyRotation, vanillaCameraRotation);
         Vector3 desiredPosition = GetAttachedCameraPosition(player, bodyRotation);
 
-        ApplyCameraState(gameCamera, camera, desiredPosition, limitedRotation, allowSmoothing: false);
+        ApplyCameraState(gameCamera, camera, desiredPosition, limitedRotation);
     }
 
     private static Vector3 GetAttachedCameraPosition(Player player, Quaternion bodyRotation)
@@ -405,46 +399,21 @@ internal static class FirstPersonCamera
         return true;
     }
 
-    private static void ApplyCameraState(GameCamera gameCamera, Camera camera, Vector3 desiredPosition, Quaternion desiredRotation, bool allowSmoothing)
+    private static void ApplyCameraState(GameCamera gameCamera, Camera camera, Vector3 desiredPosition, Quaternion desiredRotation)
     {
-        ApplyTransform(gameCamera, camera, desiredPosition, desiredRotation, allowSmoothing);
+        gameCamera.transform.position = desiredPosition;
+        gameCamera.transform.rotation = desiredRotation;
+
+        if (camera.transform != gameCamera.transform)
+        {
+            camera.transform.position = desiredPosition;
+            camera.transform.rotation = desiredRotation;
+        }
 
         if (Plugin.UseCustomFov.Value)
             camera.fieldOfView = Mathf.Clamp(Plugin.Fov.Value, 40f, 120f);
 
         camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
-    }
-
-    private static void ApplyTransform(GameCamera gameCamera, Camera camera, Vector3 desiredPosition, Quaternion desiredRotation, bool allowSmoothing)
-    {
-        Vector3 finalPosition = desiredPosition;
-
-        if (allowSmoothing && Plugin.SmoothCamera.Value)
-        {
-            if (!_hasSmoothPosition)
-            {
-                _smoothPosition = gameCamera.transform.position;
-                _hasSmoothPosition = true;
-            }
-
-            float speed = Mathf.Max(0f, Plugin.CameraSmoothing.Value);
-            float lerp = speed <= 0f ? 1f : 1f - Mathf.Exp(-speed * Time.unscaledDeltaTime);
-            _smoothPosition = Vector3.Lerp(_smoothPosition, desiredPosition, lerp);
-            finalPosition = _smoothPosition;
-        }
-        else
-        {
-            ResetPositionSmoothing();
-        }
-
-        gameCamera.transform.position = finalPosition;
-        gameCamera.transform.rotation = desiredRotation;
-
-        if (camera.transform != gameCamera.transform)
-        {
-            camera.transform.position = finalPosition;
-            camera.transform.rotation = desiredRotation;
-        }
     }
 
     private static void RestoreCamera(Camera camera)
@@ -454,12 +423,6 @@ internal static class FirstPersonCamera
 
         camera.fieldOfView = _originalFov;
         camera.nearClipPlane = _originalNearClip;
-    }
-
-    private static void ResetPositionSmoothing()
-    {
-        _hasSmoothPosition = false;
-        _smoothPosition = Vector3.zero;
     }
 
     private static void ResetHeadBobFilter()
