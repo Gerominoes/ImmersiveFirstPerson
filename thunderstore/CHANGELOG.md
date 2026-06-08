@@ -4,27 +4,30 @@
 
 ### Added
 
-* Added `FarClip` under `Camera` to limit first-person view distance.
 * Added first-person graphics controls:
 
 ```ini
 [Graphics]
-FirstPersonShadowDistance = 50
-FirstPersonShadowCascades = 2
-FirstPersonLodBias = 0.8
+FirstPersonShadowDistance = 30
+FirstPersonShadowCascades = 0
 UseOcclusionCulling = true
 DisableCameraEffects = false
 ```
 
 ### Changed
 
-* First-person mode now captures and restores camera far clip, occlusion culling, shadow distance, shadow cascades, and LOD bias.
-* Shadow and LOD overrides are capped so first-person mode does not raise the player's current graphics cost.
+* First-person mode now captures and restores occlusion culling, shadow distance, and shadow cascades.
+* First-person view distance and LOD stay unchanged for immersion.
 * Camera effect disabling is optional and restores each component to its previous enabled state when first person ends.
+* Head hiding now caches head bones and head-slot renderers instead of scanning the full player transform hierarchy every frame.
+* `HideHead` now validates local-player ownership before mutating renderers or bones for multiplayer compatibility.
+* `HideHead` no longer shrinks equipment skeleton head bones, fixing shoulder-linked helmets such as padded helmets rendering at reduced size.
+* `HideHead` now compensates skinned head-slot renderers that use shrunken head bones, so helmet shadows keep their intended size while the renderer stays hidden from the camera.
 
 ### Notes
 
-* Set `FarClip = 0`, `FirstPersonShadowDistance = -1`, `FirstPersonShadowCascades = -1`, and `FirstPersonLodBias = -1` to keep current game graphics distances.
+* Set `FirstPersonShadowDistance = -1` and `FirstPersonShadowCascades = -1` to keep current game shadow settings.
+* Existing generated configs keep their previous values until edited or regenerated.
 * Actual FPS gains depend on the scene, hardware, world density, and other installed mods.
 
 ## v1.2.2

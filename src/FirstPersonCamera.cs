@@ -19,7 +19,6 @@ internal static class GameCameraUpdatePatch
 internal static class FirstPersonCamera
 {
     private const float HeadBobFilterSpeed = 3f;
-    private const float MinimumFarClipPadding = 1f;
 
     private static readonly string[] CameraEffectTypeNameFragments =
     {
@@ -37,12 +36,12 @@ internal static class FirstPersonCamera
         AccessTools.Field(typeof(GameCamera), "m_camera");
 
     private static readonly MethodInfo? IsCrouchingMethod =
-        AccessTools.Method(typeof(Player), "IsCrouching") ??
-        AccessTools.Method(typeof(Character), "IsCrouching");
+        FindInstanceMethod(typeof(Player), "IsCrouching") ??
+        FindInstanceMethod(typeof(Character), "IsCrouching");
 
     private static readonly MethodInfo? InSneakMethod =
-        AccessTools.Method(typeof(Player), "InSneak") ??
-        AccessTools.Method(typeof(Character), "InSneak");
+        FindInstanceMethod(typeof(Player), "InSneak") ??
+        FindInstanceMethod(typeof(Character), "InSneak");
 
     private static readonly FieldInfo? CrouchField =
         AccessTools.Field(typeof(Player), "m_crouchToggled") ??
@@ -56,14 +55,13 @@ internal static class FirstPersonCamera
     private static Transform? _cachedHeadAnchor;
     private static float _originalFov;
     private static float _originalNearClip;
-    private static float _originalFarClip;
     private static bool _originalUseOcclusionCulling;
     private static bool _savedOriginals;
+    private static bool _loggedRenderingState;
 
-    // Quality defaults are global Unity settings, so they must be restored explicitly.
+    // Shadow defaults are global Unity settings, so they must be restored explicitly.
     private static float _originalShadowDistance;
     private static int _originalShadowCascades;
-    private static float _originalLodBias;
 
     // Camera effect components are restored to their previous enabled state.
     private static readonly Dictionary<Behaviour, bool> CameraEffectStates = new();
@@ -136,6 +134,12 @@ internal static class FirstPersonCamera
         return CameraField.GetValue(gameCamera) as Camera;
     }
 
+    private static MethodInfo? FindInstanceMethod(Type type, string name)
+    {
+        // Optional Valheim methods vary by version, so missing methods should not warn.
+        return type.GetMethod(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+    }
+
     private static void SaveOriginalCameraValues(Camera camera)
     {
         if (_savedOriginals && _savedCamera == camera)
@@ -148,15 +152,25 @@ internal static class FirstPersonCamera
         _savedCamera = camera;
         _originalFov = camera.fieldOfView;
         _originalNearClip = camera.nearClipPlane;
-        _originalFarClip = camera.farClipPlane;
         _originalUseOcclusionCulling = camera.useOcclusionCulling;
 
-        // Capture global quality state changed for first-person performance.
+        // Capture global shadow state changed for first-person performance.
         _originalShadowDistance = QualitySettings.shadowDistance;
         _originalShadowCascades = QualitySettings.shadowCascades;
-        _originalLodBias = QualitySettings.lodBias;
 
         _savedOriginals = true;
+        LogRenderingState();
+    }
+
+    private static void LogRenderingState()
+    {
+        if (_loggedRenderingState)
+            return;
+
+        _loggedRenderingState = true;
+
+        // Runtime logging confirms the first-person path preserves scene range and LOD.
+        Plugin.Log.LogInfo($"First-person rendering state: view distance unchanged; LOD unchanged; originalNearClip={_originalNearClip:0.###}; requestedNearClip={Plugin.NearClip.Value:0.###}; originalShadowDistance={_originalShadowDistance:0.###}; shadowDistanceCap={Plugin.FirstPersonShadowDistance.Value:0.###}; originalShadowCascades={_originalShadowCascades}; shadowCascadesCap={Plugin.FirstPersonShadowCascades.Value}; originalOcclusionCulling={_originalUseOcclusionCulling}; requestedOcclusionCulling={Plugin.UseOcclusionCulling.Value}; cameraEffectsDisabled={Plugin.DisableCameraEffects.Value}.");
     }
 
     private static void RestoreLocalVisibilityForSuppressedCamera()
@@ -468,34 +482,18 @@ internal static class FirstPersonCamera
 
     private static void ApplyFirstPersonRendering(Camera camera)
     {
-        // Camera-level rendering work is reduced first because it affects every frame.
-        ApplyClipPlanes(camera);
+        // Keep the near clip tight without changing first-person view distance.
+        camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
         camera.useOcclusionCulling = Plugin.UseOcclusionCulling.Value;
 
-        // Global quality settings reduce shadow and LOD cost while first person is active.
-        ApplyQualityOverrides();
+        // Shadow settings reduce lighting cost without changing visible object distance.
+        ApplyShadowOverrides();
 
         // Camera effects are optional because some players prefer the visual tradeoff.
         ApplyCameraEffectOverrides(camera);
     }
 
-    private static void ApplyClipPlanes(Camera camera)
-    {
-        camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
-
-        if (Plugin.FarClip.Value <= 0f)
-        {
-            camera.farClipPlane = _originalFarClip;
-            return;
-        }
-
-        float requestedFarClip = Mathf.Max(Plugin.FarClip.Value, camera.nearClipPlane + MinimumFarClipPadding);
-        float originalFarClip = _originalFarClip > 0f ? _originalFarClip : camera.farClipPlane;
-        float limitedFarClip = Mathf.Min(originalFarClip, requestedFarClip);
-        camera.farClipPlane = Mathf.Max(limitedFarClip, camera.nearClipPlane + MinimumFarClipPadding);
-    }
-
-    private static void ApplyQualityOverrides()
+    private static void ApplyShadowOverrides()
     {
         if (Plugin.FirstPersonShadowDistance.Value >= 0f)
         {
@@ -507,12 +505,6 @@ internal static class FirstPersonCamera
         {
             int requestedShadowCascades = NormalizeShadowCascades(Plugin.FirstPersonShadowCascades.Value);
             QualitySettings.shadowCascades = Mathf.Min(_originalShadowCascades, requestedShadowCascades);
-        }
-
-        if (Plugin.FirstPersonLodBias.Value > 0f)
-        {
-            float requestedLodBias = Mathf.Max(0.1f, Plugin.FirstPersonLodBias.Value);
-            QualitySettings.lodBias = Mathf.Min(_originalLodBias, requestedLodBias);
         }
     }
 
@@ -575,13 +567,11 @@ internal static class FirstPersonCamera
         {
             targetCamera.fieldOfView = _originalFov;
             targetCamera.nearClipPlane = _originalNearClip;
-            targetCamera.farClipPlane = _originalFarClip;
             targetCamera.useOcclusionCulling = _originalUseOcclusionCulling;
         }
 
         QualitySettings.shadowDistance = _originalShadowDistance;
         QualitySettings.shadowCascades = _originalShadowCascades;
-        QualitySettings.lodBias = _originalLodBias;
         RestoreCameraEffectStates();
 
         _savedCamera = null;

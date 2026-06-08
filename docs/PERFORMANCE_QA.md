@@ -44,14 +44,15 @@ Use this worksheet for the in-game profiler pass before publishing the Optimizat
 - [ ] First-person toggle applies and exits cleanly.
 - [ ] FOV restores after leaving first person.
 - [ ] Near clip restores after leaving first person.
-- [ ] Far clip restores after leaving first person.
 - [ ] Shadow distance restores after leaving first person.
 - [ ] Shadow cascade count restores after leaving first person.
-- [ ] LOD bias restores after leaving first person.
 - [ ] Occlusion culling restores after leaving first person.
 - [ ] Optional camera effect disabling restores component enabled states.
 - [ ] Inventory and crafting override behavior still works.
 - [ ] Ships, seats, hold fast, and attached states still use the stable attached camera.
 - [ ] Local body, hands, and held items remain visible.
 - [ ] `HideHead = true` still hides head and head-slot equipment from the camera.
+- [ ] Helmet-slot equipment stays invisible to the camera and still casts a shadow with `HideHead = true`.
+- [ ] Shoulder-linked helmets, such as padded helmets, keep full-size shadows with `HideHead = true`.
+- [ ] In multiplayer, `HideHead = true` does not hide or shrink remote player heads.
 - [ ] No new warnings or errors appear in the BepInEx log.

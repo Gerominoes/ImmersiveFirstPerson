@@ -34,7 +34,6 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> DownLookExtraVerticalOffset = null!;
     internal static ConfigEntry<float> CrouchVerticalOffset = null!;
     internal static ConfigEntry<float> NearClip = null!;
-    internal static ConfigEntry<float> FarClip = null!;
     internal static ConfigEntry<bool> UseCustomFov = null!;
     internal static ConfigEntry<float> Fov = null!;
     internal static ConfigEntry<float> HeadBobAmount = null!;
@@ -43,12 +42,12 @@ public sealed class Plugin : BaseUnityPlugin
 
     internal static ConfigEntry<float> FirstPersonShadowDistance = null!;
     internal static ConfigEntry<int> FirstPersonShadowCascades = null!;
-    internal static ConfigEntry<float> FirstPersonLodBias = null!;
     internal static ConfigEntry<bool> UseOcclusionCulling = null!;
     internal static ConfigEntry<bool> DisableCameraEffects = null!;
 
     internal static ConfigEntry<bool> HideHead = null!;
     internal static ConfigEntry<bool> ForceBodyVisible = null!;
+    internal static ConfigEntry<float> VisibilityRefreshInterval = null!;
 
     internal static ConfigEntry<bool> EnableDebugLogs = null!;
     internal static ConfigEntry<bool> LogRendererNames = null!;
@@ -82,7 +81,6 @@ public sealed class Plugin : BaseUnityPlugin
         DownLookExtraVerticalOffset = Config.Bind("Camera", "DownLookExtraVerticalOffset", 0.06f, "Extra upward offset applied gradually when looking down.");
         CrouchVerticalOffset = Config.Bind("Camera", "CrouchVerticalOffset", -0.45f, "Additional vertical camera offset while crouching or sneaking when head tracking is unavailable or head bob is reduced.");
         NearClip = Config.Bind("Camera", "NearClip", 0.02f, "Near clipping plane while first-person mode is active.");
-        FarClip = Config.Bind("Camera", "FarClip", 250f, new ConfigDescription("Far clipping plane while first-person mode is active. Set to 0 to keep the game's current far clip.", new AcceptableValueRange<float>(0f, 5000f)));
         UseCustomFov = Config.Bind("Camera", "UseCustomFov", true, "Use the configured first-person FOV.");
         Fov = Config.Bind("Camera", "FOV", 75f, "Field of view while first-person mode is active.");
         HeadBobAmount = Config.Bind("Camera Motion", "HeadBobAmount", 0.5f, new ConfigDescription("Controls how much fast animation-based head motion affects the first-person camera. 0 keeps only filtered head tracking. 1 uses full tracked head motion.", new AcceptableValueRange<float>(0f, 1f)));
@@ -90,15 +88,15 @@ public sealed class Plugin : BaseUnityPlugin
         BodyRotationFollowSpeed = Config.Bind("Camera", "BodyRotationFollowSpeed", 0f, "How quickly the body rotates to the camera yaw. Set to 0 for instant body lock.");
 
         // Graphics optimization settings.
-        FirstPersonShadowDistance = Config.Bind("Graphics", "FirstPersonShadowDistance", 50f, new ConfigDescription("Maximum shadow draw distance while first-person mode is active. Set to -1 to keep the game's current shadow distance.", new AcceptableValueRange<float>(-1f, 500f)));
-        FirstPersonShadowCascades = Config.Bind("Graphics", "FirstPersonShadowCascades", 2, new ConfigDescription("Maximum shadow cascade count while first-person mode is active. Set to -1 to keep the game's current cascade count. Values are normalized to 0, 2, or 4.", new AcceptableValueRange<int>(-1, 4)));
-        FirstPersonLodBias = Config.Bind("Graphics", "FirstPersonLodBias", 0.8f, new ConfigDescription("Maximum LOD bias while first-person mode is active. Lower values switch distant objects to cheaper LODs sooner. Set to -1 to keep the game's current LOD bias.", new AcceptableValueRange<float>(-1f, 2f)));
+        FirstPersonShadowDistance = Config.Bind("Graphics", "FirstPersonShadowDistance", 30f, new ConfigDescription("Maximum shadow draw distance while first-person mode is active. Set to -1 to keep the game's current shadow distance.", new AcceptableValueRange<float>(-1f, 500f)));
+        FirstPersonShadowCascades = Config.Bind("Graphics", "FirstPersonShadowCascades", 0, new ConfigDescription("Maximum shadow cascade count while first-person mode is active. Set to -1 to keep the game's current cascade count. Values are normalized to 0, 2, or 4.", new AcceptableValueRange<int>(-1, 4)));
         UseOcclusionCulling = Config.Bind("Graphics", "UseOcclusionCulling", true, "Enable camera occlusion culling while first-person mode is active.");
         DisableCameraEffects = Config.Bind("Graphics", "DisableCameraEffects", false, "Disable known camera post-processing components while first-person mode is active, then restore them when leaving first person.");
 
         // Visibility settings.
         HideHead = Config.Bind("Visibility", "HideHead", false, "Hide the local player's head and head-slot equipment from the first-person camera while preserving shadows.");
         ForceBodyVisible = Config.Bind("Visibility", "ForceBodyVisible", true, "Force the local player body and held items visible while first-person mode is active.");
+        VisibilityRefreshInterval = Config.Bind("Visibility", "VisibilityRefreshInterval", 1f, new ConfigDescription("Seconds between head-slot and head-bone refresh scans while HideHead is enabled. Lower values detect equipment changes sooner and cost more CPU.", new AcceptableValueRange<float>(0.1f, 10f)));
 
         // Debug settings.
         EnableDebugLogs = Config.Bind("Debug", "EnableDebugLogs", false, "Enable extra logs for camera, state, visibility, and cleanup behavior.");
@@ -108,6 +106,13 @@ public sealed class Plugin : BaseUnityPlugin
         _harmony.PatchAll();
 
         Log.LogInfo($"{PluginName} {PluginVersion} loaded.");
+        LogOptimizationPolicy();
+    }
+
+    private static void LogOptimizationPolicy()
+    {
+        // Startup policy logging makes game logs enough to verify immersion-safe settings.
+        Log.LogInfo($"Optimization policy: view distance unchanged; LOD unchanged; shadowDistanceCap={FirstPersonShadowDistance.Value}; shadowCascadesCap={FirstPersonShadowCascades.Value}; occlusionCulling={UseOcclusionCulling.Value}; disableCameraEffects={DisableCameraEffects.Value}; visibilityRefreshInterval={VisibilityRefreshInterval.Value}s.");
     }
 
     internal static void DebugLog(string message)

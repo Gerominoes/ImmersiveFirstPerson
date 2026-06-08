@@ -10,7 +10,7 @@ Immersive First Person adds a grounded first-person camera to Valheim without re
 
 The camera tracks the player's animated head when possible, keeps the local body visible, and includes body-yaw locking so you do not end up staring at your own back in first person. Head hiding is disabled by default to preserve normal character shadows, but an optional head visibility setting is available for users who experience clipping with specific armor or equipment.
 
-Version 1.3.0 adds first-person rendering controls for far clip, shadow distance, shadow cascades, LOD bias, occlusion culling, and optional camera effect disabling.
+Version 1.3.0 adds first-person rendering controls for shadow distance, shadow cascades, occlusion culling, optional camera effect disabling, and head-hiding cache cost.
 
 ## Features
 
@@ -23,9 +23,10 @@ Version 1.3.0 adds first-person rendering controls for far clip, shadow distance
 - First-person support for inventory, crafting, ships, hold fast, sitting, and attached states.
 - Attached camera lock for seats, ships, hold-fast points, and similar attachment states.
 - Automatic visibility restoration when opening menu or minimap.
-- Optional head and head-slot equipment hiding.
-- Configurable FOV, near clipping, far clipping, camera offsets, body rotation, and attached-camera limits.
-- First-person graphics optimization settings for shadows, LOD bias, occlusion culling, and camera effects.
+- Optional head and head-slot equipment hiding with full-size matched helmet-slot shadows.
+- Local-only `HideHead` behavior for multiplayer compatibility.
+- Configurable FOV, near clipping, camera offsets, body rotation, and attached-camera limits.
+- First-person optimization settings for shadows, occlusion culling, camera effects, and head-hiding cache cost.
 - Debug renderer logging for compatibility troubleshooting.
 
 ## Installation
@@ -52,7 +53,6 @@ This mod may conflict with mods that heavily modify the Valheim camera, player s
 UseHeadTrackedAnchor = true
 LockBodyToCamera = true
 NearClip = 0.02
-FarClip = 250
 
 [Camera Overrides]
 OverrideForcedThirdPerson = true
@@ -66,24 +66,25 @@ AttachedCameraMaxPitch = 55
 HeadBobAmount = 0.5
 
 [Graphics]
-FirstPersonShadowDistance = 50
-FirstPersonShadowCascades = 2
-FirstPersonLodBias = 0.8
+FirstPersonShadowDistance = 30
+FirstPersonShadowCascades = 0
 UseOcclusionCulling = true
 DisableCameraEffects = false
 
 [Visibility]
 HideHead = false
 ForceBodyVisible = true
+VisibilityRefreshInterval = 1
 ```
 
 ## v1.3.0 changelog
 
 Optimization Update.
 
-- Added configurable first-person far clip.
 - Added first-person shadow distance and cascade controls.
-- Added first-person LOD bias control.
 - Added first-person occlusion culling control.
 - Added optional camera effect disabling.
 - Restores all camera and quality overrides when first-person mode ends.
+- Caches head hiding scans to reduce CPU cost while `HideHead` is enabled.
+- Keeps `HideHead` renderer and bone changes scoped to the local player.
+- Compensates matched skinned helmet-slot shadows when the mesh uses a shrunken head bone.

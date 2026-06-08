@@ -2,38 +2,35 @@
 
 A body-aware first-person camera for **Valheim**.
 
-Immersive First Person lets you experience Valheim from your character's point of view while keeping the vanilla feel of movement, combat, sailing, and exploration. It is built to feel natural instead of turning the game into a detached free camera.
-
-The camera tracks your character's animated head when possible, keeps your body visible, and includes comfort options for players who are sensitive to motion.
+Step into your character's boots and keep Valheim feeling like Valheim. Immersive First Person tracks your animated head, keeps your local body visible, and handles the awkward moments where the game normally pulls the camera back out.
 
 ![Immersive First Person SS](https://raw.githubusercontent.com/Gerominoes/ImmersiveFirstPerson/main/assets/demo.png)
 
-## What it does
+## Highlights
 
-- Adds a toggleable first-person mode.
-- Keeps the local player body visible for better immersion.
-- Tracks the animated head position when possible.
-- Keeps first person active during gameplay moments that normally force third person, such as inventory, crafting, ships, hold fast, and attached states.
-- Stabilizes the camera while seated, sailing, holding fast, or attached to objects.
-- Includes a head bob slider for motion sickness prevention.
-- Lets you optionally hide the head and head-slot equipment from the camera while preserving shadows where possible.
-- Keeps held items visible.
-- Preserves vanilla movement and mouse behavior.
-- Supports configurable FOV, near clip, camera offsets, body rotation, and attached-camera limits.
-- Adds first-person graphics optimization options for far clip, shadows, LOD bias, occlusion culling, and camera effects.
-- Temporarily restores normal visibility when the camera override is paused by menus or the minimap.
+- Toggle first person with `F6`.
+- Keep your body, hands, and held items visible.
+- Stay first person while crafting, sailing, sitting, holding fast, or opening inventory.
+- Smooth out intense head movement with the head bob slider.
+- Hide head and helmet-slot gear when camera clipping gets in the way.
+- Keep `HideHead` local-only for multiplayer.
+- Tune shadows, occlusion culling, camera effects, and visibility refresh cost.
 
-## Default controls
+## Quick Start
 
-| Action | Default key |
-| --- | --- |
-| Toggle first-person mode | `F6` |
+Install the mod, launch Valheim once, then press `F6`.
 
-You can change the keybind in the generated config file.
+If your head or helmet gets in the camera, enable:
 
-## Recommended settings
+```ini
+[Visibility]
+HideHead = true
+```
 
-For the intended experience, start with:
+<details>
+<summary>Recommended settings</summary>
+
+For the intended first-person feel, start here:
 
 ```ini
 [Camera Overrides]
@@ -44,76 +41,60 @@ AttachedCameraExtraForwardOffset = 0.08
 AttachedCameraMaxYaw = 80
 AttachedCameraMaxPitch = 55
 
-[Camera]
-FarClip = 250
-
 [Camera Motion]
 HeadBobAmount = 0.5
 
 [Graphics]
-FirstPersonShadowDistance = 50
-FirstPersonShadowCascades = 2
-FirstPersonLodBias = 0.8
+FirstPersonShadowDistance = 30
+FirstPersonShadowCascades = 0
 UseOcclusionCulling = true
 DisableCameraEffects = false
 
 [Visibility]
 HideHead = false
 ForceBodyVisible = true
+VisibilityRefreshInterval = 1
 ```
 
-If you see your character's head or helmet clipping into the camera, enable:
+</details>
+
+## Performance
+
+Version 1.3.0 keeps view distance and LOD unchanged for immersion. The optimization settings focus on shadows, occlusion culling, optional camera effects, and head-hiding scan cost.
+
+To keep the game's current shadow settings:
 
 ```ini
-[Visibility]
-HideHead = true
-```
-
-## Performance tuning
-
-Version 1.3.0 lowers first-person rendering cost by reducing first-person view distance, shadow distance, shadow cascades, and distant-object LOD bias while first person is active.
-
-If you prefer the game's current graphics distances, use these opt-out values:
-
-```ini
-[Camera]
-FarClip = 0
-
 [Graphics]
 FirstPersonShadowDistance = -1
 FirstPersonShadowCascades = -1
-FirstPersonLodBias = -1
 DisableCameraEffects = false
 ```
 
-## Notable config options
+<details>
+<summary>Notable config options</summary>
 
-| Section | Option | Default | Description |
+| Section | Option | Default | What it does |
 | --- | --- | ---: | --- |
-| `Camera Overrides` | `OverrideForcedThirdPerson` | `true` | Keeps first person active during gameplay interactions that normally force third person. |
-| `Camera Overrides` | `LockCameraWhileAttached` | `true` | Locks the camera to a captured head-level body offset while attached to seats, ships, hold-fast points, and similar attach points. |
-| `Camera Overrides` | `AttachedCameraExtraVerticalOffset` | `0` | Extra vertical offset added to the captured head-level camera position while attached. |
-| `Camera Overrides` | `AttachedCameraExtraForwardOffset` | `0.08` | Extra forward offset added to the captured head-level camera position while attached. |
-| `Camera Overrides` | `AttachedCameraMaxYaw` | `80` | Maximum left/right camera yaw from the attached body direction. |
-| `Camera Overrides` | `AttachedCameraMaxPitch` | `55` | Maximum up/down camera pitch while attached. |
-| `Camera` | `FarClip` | `250` | Far clipping plane while first-person mode is active. `0` keeps the game's current far clip. |
-| `Graphics` | `FirstPersonShadowDistance` | `50` | Maximum shadow draw distance while first-person mode is active. `-1` keeps the game's current shadow distance. |
-| `Graphics` | `FirstPersonShadowCascades` | `2` | Maximum shadow cascade count while first-person mode is active. `-1` keeps the game's current cascade count. |
-| `Graphics` | `FirstPersonLodBias` | `0.8` | Maximum LOD bias while first-person mode is active. Lower values switch distant objects to cheaper LODs sooner. |
-| `Graphics` | `UseOcclusionCulling` | `true` | Enables camera occlusion culling while first-person mode is active. |
-| `Graphics` | `DisableCameraEffects` | `false` | Disables known camera post-processing components while first-person mode is active, then restores them on exit. |
-| `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much fast animation-based head movement affects the camera. `0` keeps only filtered head tracking. `1` uses full tracked head motion. |
-| `Visibility` | `HideHead` | `false` | Hides the local head model and head-slot equipment from the camera. Head-slot equipment keeps casting shadows where possible. Held items remain visible. |
+| `Camera Overrides` | `OverrideForcedThirdPerson` | `true` | Keeps first person active during gameplay interactions. |
+| `Camera Overrides` | `LockCameraWhileAttached` | `true` | Locks the camera to a stable body offset while seated, sailing, or attached. |
+| `Camera Overrides` | `AttachedCameraExtraVerticalOffset` | `0` | Adds height to the attached camera position. |
+| `Camera Overrides` | `AttachedCameraExtraForwardOffset` | `0.08` | Moves the attached camera forward slightly. |
+| `Camera Overrides` | `AttachedCameraMaxYaw` | `80` | Limits left and right looking while attached. |
+| `Camera Overrides` | `AttachedCameraMaxPitch` | `55` | Limits up and down looking while attached. |
+| `Graphics` | `FirstPersonShadowDistance` | `30` | Caps first-person shadow distance. Use `-1` to keep the current value. |
+| `Graphics` | `FirstPersonShadowCascades` | `0` | Caps first-person shadow cascades. Use `-1` to keep the current value. |
+| `Graphics` | `UseOcclusionCulling` | `true` | Enables camera occlusion culling in first person. |
+| `Graphics` | `DisableCameraEffects` | `false` | Temporarily disables known camera post-processing components. |
+| `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much animated head movement affects the camera. |
+| `Visibility` | `HideHead` | `false` | Hides the local head and matched head-slot gear from the camera. |
+| `Visibility` | `VisibilityRefreshInterval` | `1` | Controls how often head-slot renderers and head bones are refreshed. |
+
+</details>
 
 ## Installation
 
-### Mod manager
-
-Install through your preferred Valheim mod manager.
-
-### Manual install
-
-Place `ImmersiveFirstPerson.dll` in:
+Use your preferred Valheim mod manager, or place `ImmersiveFirstPerson.dll` here:
 
 ```text
 Valheim/BepInEx/plugins/ImmersiveFirstPerson/
@@ -121,23 +102,15 @@ Valheim/BepInEx/plugins/ImmersiveFirstPerson/
 
 Launch the game once to generate the config file.
 
-## Updating from older versions
+## Updating
 
-If the mod behaves strangely after updating, back up and delete the old config file, then launch the game once to regenerate it.
-
-This is especially useful after updates that add, rename, or remove config options.
+If the mod acts oddly after an update, back up and delete the old config file, then launch the game once to regenerate it.
 
 ## Compatibility
 
-This mod changes camera placement and local player visibility. It may conflict with mods that heavily modify:
+This mod touches the camera, local player visibility, the character skeleton, and attached camera states. Mods that heavily change those systems may overlap.
 
-- the player camera
-- the character skeleton or animation rig
-- local player rendering
-- ships
-- sitting or attachment behavior
-
-Most ordinary gameplay, content, and UI mods should be fine.
+`HideHead` only mutates the local player's renderers and bones. Remote player characters are ignored for multiplayer compatibility.
 
 ## Credits
 

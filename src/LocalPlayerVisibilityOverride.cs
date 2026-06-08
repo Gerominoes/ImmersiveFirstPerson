@@ -7,8 +7,8 @@ namespace ImmersiveFirstPerson;
 internal static class LocalPlayerVisibilityOverride
 {
     private static readonly MethodInfo? PlayerSetVisibleMethod =
-        AccessTools.Method(typeof(Player), "SetVisible") ??
-        AccessTools.Method(typeof(Character), "SetVisible");
+        FindInstanceMethod(typeof(Player), "SetVisible") ??
+        FindInstanceMethod(typeof(Character), "SetVisible");
 
     private static readonly FieldInfo? VisEquipmentField =
         AccessTools.Field(typeof(Humanoid), "m_visEquipment") ??
@@ -59,7 +59,7 @@ internal static class LocalPlayerVisibilityOverride
         if (_cachedVisEquipmentType != type)
         {
             _cachedVisEquipmentType = type;
-            _cachedVisEquipmentSetVisibleMethod = AccessTools.Method(type, "SetVisible");
+            _cachedVisEquipmentSetVisibleMethod = FindInstanceMethod(type, "SetVisible");
         }
 
         if (_cachedVisEquipmentSetVisibleMethod == null)
@@ -73,5 +73,11 @@ internal static class LocalPlayerVisibilityOverride
         {
             Plugin.DebugLog($"VisEquipment visibility override failed: {ex.GetType().Name}");
         }
+    }
+
+    private static MethodInfo? FindInstanceMethod(Type type, string name)
+    {
+        // Optional Valheim methods vary by version, so missing methods should not warn.
+        return type.GetMethod(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
     }
 }
