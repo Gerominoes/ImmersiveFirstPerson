@@ -1,8 +1,16 @@
 # Changelog
 
+## v1.2.2
+
+Fix wrong file upload for real this time.
+
+## v1.2.1
+
+Fixed wrong file uploaded.
+
 ## v1.2.0
 
-## Added
+### Added
 
 * Added first-person support for more gameplay states that normally force third person.
 
@@ -36,7 +44,7 @@ AttachedCameraMaxPitch = 55
 HeadBobAmount = 0.5
 ```
 
-## Changed
+### Changed
 
 * Reworked head bob reduction.
 
@@ -59,7 +67,7 @@ HeadBobAmount = 0.5
   * Cleaner install and compatibility sections.
   * Added Ko-fi support link.
 
-## Removed
+### Removed
 
 * Removed camera smoothing and its config options.
 
@@ -80,7 +88,7 @@ HeadBobAmount = 0.5
   * `HideShoulderPads`
   * `HideBackItems`
 
-## Fixed
+### Fixed
 
 * Fixed first-person camera rubberbanding while sailing in attached states.
 * Fixed seated and hold-fast camera placement showing the player head.
