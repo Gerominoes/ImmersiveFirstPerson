@@ -1,6 +1,6 @@
-# Immersive First Person 1.3.0 Performance QA
+# Immersive First Person 1.3.1 Performance QA
 
-Use this worksheet for the in-game profiler pass before publishing the Optimization Update.
+Use this worksheet for the in-game profiler and camera regression pass before publishing the Shoulder Peek Update.
 
 ## Test Setup
 
@@ -24,7 +24,7 @@ Use this worksheet for the in-game profiler pass before publishing the Optimizat
 
 ## Metrics
 
-| Metric | Third Person | First Person Before 1.3.0 | First Person 1.3.0 | Notes |
+| Metric | Third Person | First Person Before 1.3.1 | First Person 1.3.1 | Notes |
 | --- | ---: | ---: | ---: | --- |
 | FPS | TBD | TBD | TBD | Capture from the same scene and camera direction. |
 | CPU Main Thread ms | TBD | TBD | TBD | Unity Profiler CPU module. |
@@ -50,6 +50,12 @@ Use this worksheet for the in-game profiler pass before publishing the Optimizat
 - [ ] Optional camera effect disabling restores component enabled states.
 - [ ] Inventory and crafting override behavior still works.
 - [ ] Ships, seats, hold fast, and attached states still use the stable attached camera.
+- [ ] `EnableShoulderPeek = false` leaves the first-person camera centered.
+- [ ] Shoulder Peek hold mode leans left and right, then returns to center when released.
+- [ ] Shoulder Peek hold mode returns to center when both peek keys are held.
+- [ ] Shoulder Peek toggle mode switches left and right, then returns to center when the active key is pressed again.
+- [ ] Shoulder Peek resets after leaving first-person mode.
+- [ ] Shoulder Peek keeps the camera side-only without moving backward.
 - [ ] Local body, hands, and held items remain visible.
 - [ ] `HideHead = true` still hides head and head-slot equipment from the camera.
 - [ ] Helmet-slot equipment stays invisible to the camera and still casts a shadow with `HideHead = true`.

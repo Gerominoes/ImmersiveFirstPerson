@@ -11,6 +11,7 @@ Step into your character's boots and keep Valheim feeling like Valheim. Immersiv
 - Toggle first person with `F6`.
 - Keep your body, hands, and held items visible.
 - Stay first person while crafting, sailing, sitting, holding fast, or opening inventory.
+- Peek left or right in first person with hold or toggle controls.
 - Smooth out intense head movement with the head bob slider.
 - Hide head and helmet-slot gear when camera clipping gets in the way.
 - Keep `HideHead` local-only for multiplayer.
@@ -44,6 +45,14 @@ AttachedCameraMaxPitch = 55
 [Camera Motion]
 HeadBobAmount = 0.5
 
+[Shoulder Peek]
+EnableShoulderPeek = true
+ShoulderPeekMode = Hold
+PeekLeftKey = Mouse3
+PeekRightKey = Mouse4
+ShoulderPeekOffset = 0.28
+ShoulderPeekSpeed = 12
+
 [Graphics]
 FirstPersonShadowDistance = 30
 FirstPersonShadowCascades = 0
@@ -60,7 +69,7 @@ VisibilityRefreshInterval = 1
 
 ## Performance
 
-Version 1.3.0 keeps view distance and LOD unchanged for immersion. The optimization settings focus on shadows, occlusion culling, optional camera effects, and head-hiding scan cost.
+Version 1.3.1 keeps view distance and LOD unchanged for immersion. The optimization settings focus on shadows, occlusion culling, optional camera effects, and head-hiding scan cost.
 
 To keep the game's current shadow settings:
 
@@ -82,6 +91,12 @@ DisableCameraEffects = false
 | `Camera Overrides` | `AttachedCameraExtraForwardOffset` | `0.08` | Moves the attached camera forward slightly. |
 | `Camera Overrides` | `AttachedCameraMaxYaw` | `80` | Limits left and right looking while attached. |
 | `Camera Overrides` | `AttachedCameraMaxPitch` | `55` | Limits up and down looking while attached. |
+| `Shoulder Peek` | `EnableShoulderPeek` | `true` | Enables first-person side peeking. |
+| `Shoulder Peek` | `ShoulderPeekMode` | `Hold` | Uses hold or toggle input behavior. |
+| `Shoulder Peek` | `PeekLeftKey` | `Mouse3` | Peeks the camera left. |
+| `Shoulder Peek` | `PeekRightKey` | `Mouse4` | Peeks the camera right. |
+| `Shoulder Peek` | `ShoulderPeekOffset` | `0.28` | Sets the side-only camera offset. |
+| `Shoulder Peek` | `ShoulderPeekSpeed` | `12` | Sets how quickly the side offset blends. |
 | `Graphics` | `FirstPersonShadowDistance` | `30` | Caps first-person shadow distance. Use `-1` to keep the current value. |
 | `Graphics` | `FirstPersonShadowCascades` | `0` | Caps first-person shadow cascades. Use `-1` to keep the current value. |
 | `Graphics` | `UseOcclusionCulling` | `true` | Enables camera occlusion culling in first person. |

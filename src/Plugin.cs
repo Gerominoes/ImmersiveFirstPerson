@@ -6,13 +6,20 @@ using UnityEngine;
 
 namespace ImmersiveFirstPerson;
 
+// Shoulder peek modes are saved as user-facing config values.
+public enum ShoulderPeekMode
+{
+    Hold,
+    Toggle
+}
+
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
 [BepInProcess("valheim.exe")]
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.geronimo.valheim.immersivefirstperson";
     public const string PluginName = "Immersive First Person";
-    public const string PluginVersion = "1.3.0";
+    public const string PluginVersion = "1.3.1";
 
     internal static ManualLogSource Log = null!;
 
@@ -39,6 +46,13 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> HeadBobAmount = null!;
     internal static ConfigEntry<bool> LockBodyToCamera = null!;
     internal static ConfigEntry<float> BodyRotationFollowSpeed = null!;
+
+    internal static ConfigEntry<bool> EnableShoulderPeek = null!;
+    internal static ConfigEntry<ShoulderPeekMode> ShoulderPeekMode = null!;
+    internal static ConfigEntry<KeyCode> PeekLeftKey = null!;
+    internal static ConfigEntry<KeyCode> PeekRightKey = null!;
+    internal static ConfigEntry<float> ShoulderPeekOffset = null!;
+    internal static ConfigEntry<float> ShoulderPeekSpeed = null!;
 
     internal static ConfigEntry<float> FirstPersonShadowDistance = null!;
     internal static ConfigEntry<int> FirstPersonShadowCascades = null!;
@@ -86,6 +100,14 @@ public sealed class Plugin : BaseUnityPlugin
         HeadBobAmount = Config.Bind("Camera Motion", "HeadBobAmount", 0.5f, new ConfigDescription("Controls how much fast animation-based head motion affects the first-person camera. 0 keeps only filtered head tracking. 1 uses full tracked head motion.", new AcceptableValueRange<float>(0f, 1f)));
         LockBodyToCamera = Config.Bind("Camera", "LockBodyToCamera", true, "Rotate the local player body yaw to match vanilla camera yaw while first-person mode is active.");
         BodyRotationFollowSpeed = Config.Bind("Camera", "BodyRotationFollowSpeed", 0f, "How quickly the body rotates to the camera yaw. Set to 0 for instant body lock.");
+
+        // Shoulder peek settings.
+        EnableShoulderPeek = Config.Bind("Shoulder Peek", "EnableShoulderPeek", true, "Enable or disable first-person shoulder peek.");
+        ShoulderPeekMode = Config.Bind("Shoulder Peek", "ShoulderPeekMode", ImmersiveFirstPerson.ShoulderPeekMode.Hold, "Shoulder peek input mode. Valid values: Hold, Toggle.");
+        PeekLeftKey = Config.Bind("Shoulder Peek", "PeekLeftKey", KeyCode.Mouse3, "Key used to peek left.");
+        PeekRightKey = Config.Bind("Shoulder Peek", "PeekRightKey", KeyCode.Mouse4, "Key used to peek right.");
+        ShoulderPeekOffset = Config.Bind("Shoulder Peek", "ShoulderPeekOffset", 0.28f, "Sideways camera offset used when shoulder peeking.");
+        ShoulderPeekSpeed = Config.Bind("Shoulder Peek", "ShoulderPeekSpeed", 12f, "How quickly the camera moves into and out of shoulder peek.");
 
         // Graphics optimization settings.
         FirstPersonShadowDistance = Config.Bind("Graphics", "FirstPersonShadowDistance", 30f, new ConfigDescription("Maximum shadow draw distance while first-person mode is active. Set to -1 to keep the game's current shadow distance.", new AcceptableValueRange<float>(-1f, 500f)));

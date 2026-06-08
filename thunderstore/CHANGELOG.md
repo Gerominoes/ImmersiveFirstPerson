@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.3.1
+
+### Added
+
+* Added first-person Shoulder Peek.
+* Added config option to enable or disable Shoulder Peek.
+* Added Shoulder Peek input mode config with Hold and Toggle behavior.
+* Added configurable left and right peek keybinds.
+* Added configurable peek offset and peek smoothing speed.
+
+### Changed
+
+* Updated mod version from v1.3.0 to v1.3.1.
+
+### Fixed
+
+* Shoulder Peek resets when leaving first-person mode to prevent stuck camera offsets.
+
 ## v1.3.0 - Optimization Update
 
 ### Added

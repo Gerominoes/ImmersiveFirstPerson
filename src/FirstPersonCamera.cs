@@ -76,15 +76,25 @@ internal static class FirstPersonCamera
     private static Vector3 _attachedLocalCameraPosition;
     private static bool _hasAttachedCameraPosition;
 
+    // Shoulder peek state keeps the camera side offset centered when the first-person path exits.
+    private static float _currentShoulderPeekOffset;
+    private static int _toggledShoulderPeekDirection;
+
     internal static void Update(GameCamera gameCamera)
     {
         if (gameCamera == null)
+        {
+            ResetShoulderPeek();
             return;
+        }
 
         Camera? camera = GetCamera(gameCamera) ?? Camera.main;
 
         if (camera == null)
+        {
+            ResetShoulderPeek();
             return;
+        }
 
         _lastCamera = camera;
 
@@ -95,6 +105,7 @@ internal static class FirstPersonCamera
             RestoreCamera(camera);
             ResetHeadBobFilter();
             ResetAttachedCameraLock();
+            ResetShoulderPeek();
             RestoreLocalVisibilityForSuppressedCamera();
             return;
         }
@@ -123,6 +134,7 @@ internal static class FirstPersonCamera
 
         ResetHeadBobFilter();
         ResetAttachedCameraLock();
+        ResetShoulderPeek();
         ResetAnchorCache();
     }
 
@@ -237,6 +249,8 @@ internal static class FirstPersonCamera
         if (!hasHeadAnchor && isCrouchingOrSneaking)
             desiredPosition += Vector3.up * Plugin.CrouchVerticalOffset.Value;
 
+        desiredPosition = ApplyShoulderPeek(desiredPosition, vanillaCameraRotation);
+
         ApplyCameraState(gameCamera, camera, desiredPosition, vanillaCameraRotation);
     }
 
@@ -247,8 +261,74 @@ internal static class FirstPersonCamera
         Quaternion bodyRotation = player.transform.rotation;
         Quaternion limitedRotation = GetLimitedAttachedCameraRotation(bodyRotation, vanillaCameraRotation);
         Vector3 desiredPosition = GetAttachedCameraPosition(player, bodyRotation);
+        desiredPosition = ApplyShoulderPeek(desiredPosition, limitedRotation);
 
         ApplyCameraState(gameCamera, camera, desiredPosition, limitedRotation);
+    }
+
+    private static Vector3 ApplyShoulderPeek(Vector3 eyePosition, Quaternion cameraRotation)
+    {
+        if (!Plugin.EnableShoulderPeek.Value)
+        {
+            ResetShoulderPeek();
+            return eyePosition;
+        }
+
+        // Shoulder peek only adjusts the camera's local side axis after normal first-person placement.
+        int targetDirection = GetShoulderPeekDirection();
+        float targetOffset = targetDirection * Mathf.Max(0f, Plugin.ShoulderPeekOffset.Value);
+        _currentShoulderPeekOffset = SmoothShoulderPeekOffset(targetOffset);
+
+        if (Mathf.Abs(_currentShoulderPeekOffset) <= 0.0001f)
+            return eyePosition;
+
+        return eyePosition + (cameraRotation * Vector3.right) * _currentShoulderPeekOffset;
+    }
+
+    private static int GetShoulderPeekDirection()
+    {
+        bool leftPressed = Input.GetKeyDown(Plugin.PeekLeftKey.Value);
+        bool rightPressed = Input.GetKeyDown(Plugin.PeekRightKey.Value);
+        bool leftHeld = Input.GetKey(Plugin.PeekLeftKey.Value);
+        bool rightHeld = Input.GetKey(Plugin.PeekRightKey.Value);
+
+        if (Plugin.ShoulderPeekMode.Value == ShoulderPeekMode.Toggle)
+        {
+            if (leftPressed)
+                _toggledShoulderPeekDirection = _toggledShoulderPeekDirection == -1 ? 0 : -1;
+
+            if (rightPressed)
+                _toggledShoulderPeekDirection = _toggledShoulderPeekDirection == 1 ? 0 : 1;
+
+            return _toggledShoulderPeekDirection;
+        }
+
+        if (leftHeld && !rightHeld)
+            return -1;
+
+        if (rightHeld && !leftHeld)
+            return 1;
+
+        return 0;
+    }
+
+    private static float SmoothShoulderPeekOffset(float targetOffset)
+    {
+        float speed = Mathf.Max(0f, Plugin.ShoulderPeekSpeed.Value);
+
+        if (speed <= 0f)
+            return targetOffset;
+
+        // Clamping the frame step prevents a large paused or hitch frame from jumping the side offset.
+        float deltaTime = Mathf.Min(Time.unscaledDeltaTime, 0.05f);
+        float lerp = 1f - Mathf.Exp(-speed * deltaTime);
+        return Mathf.Lerp(_currentShoulderPeekOffset, targetOffset, lerp);
+    }
+
+    private static void ResetShoulderPeek()
+    {
+        _toggledShoulderPeekDirection = 0;
+        _currentShoulderPeekOffset = 0f;
     }
 
     private static Vector3 GetAttachedCameraPosition(Player player, Quaternion bodyRotation)

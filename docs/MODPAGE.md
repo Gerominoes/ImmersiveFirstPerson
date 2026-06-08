@@ -2,7 +2,7 @@
 
 ## Short description
 
-A body-aware first-person camera for Valheim with first-person rendering optimization options.
+A body-aware first-person camera for Valheim with shoulder peek and first-person rendering optimization options.
 
 ## Long description
 
@@ -10,7 +10,7 @@ Immersive First Person adds a grounded first-person camera to Valheim without re
 
 The camera tracks the player's animated head when possible, keeps the local body visible, and includes body-yaw locking so you do not end up staring at your own back in first person. Head hiding is disabled by default to preserve normal character shadows, but an optional head visibility setting is available for users who experience clipping with specific armor or equipment.
 
-Version 1.3.0 adds first-person rendering controls for shadow distance, shadow cascades, occlusion culling, optional camera effect disabling, and head-hiding cache cost.
+Version 1.3.1 adds first-person Shoulder Peek with configurable hold or toggle input, while keeping the camera strictly in first person.
 
 ## Features
 
@@ -22,6 +22,7 @@ Version 1.3.0 adds first-person rendering controls for shadow distance, shadow c
 - Local body visibility restoration.
 - First-person support for inventory, crafting, ships, hold fast, sitting, and attached states.
 - Attached camera lock for seats, ships, hold-fast points, and similar attachment states.
+- First-person Shoulder Peek with configurable left and right controls.
 - Automatic visibility restoration when opening menu or minimap.
 - Optional head and head-slot equipment hiding with full-size matched helmet-slot shadows.
 - Local-only `HideHead` behavior for multiplayer compatibility.
@@ -65,6 +66,14 @@ AttachedCameraMaxPitch = 55
 [Camera Motion]
 HeadBobAmount = 0.5
 
+[Shoulder Peek]
+EnableShoulderPeek = true
+ShoulderPeekMode = Hold
+PeekLeftKey = Mouse3
+PeekRightKey = Mouse4
+ShoulderPeekOffset = 0.28
+ShoulderPeekSpeed = 12
+
 [Graphics]
 FirstPersonShadowDistance = 30
 FirstPersonShadowCascades = 0
@@ -77,14 +86,14 @@ ForceBodyVisible = true
 VisibilityRefreshInterval = 1
 ```
 
-## v1.3.0 changelog
+## v1.3.1 changelog
 
-Optimization Update.
+Shoulder Peek Update.
 
-- Added first-person shadow distance and cascade controls.
-- Added first-person occlusion culling control.
-- Added optional camera effect disabling.
-- Restores all camera and quality overrides when first-person mode ends.
-- Caches head hiding scans to reduce CPU cost while `HideHead` is enabled.
-- Keeps `HideHead` renderer and bone changes scoped to the local player.
-- Compensates matched skinned helmet-slot shadows when the mesh uses a shrunken head bone.
+- Added first-person Shoulder Peek.
+- Added config option to enable or disable Shoulder Peek.
+- Added Shoulder Peek input mode config with Hold and Toggle behavior.
+- Added configurable left and right peek keybinds.
+- Added configurable peek offset and smoothing speed.
+- Updated mod version from v1.3.0 to v1.3.1.
+- Shoulder Peek resets when leaving first-person mode to prevent stuck camera offsets.
