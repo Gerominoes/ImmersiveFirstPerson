@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.3.0 - Optimization Update
+
+### Added
+
+* Added `FarClip` under `Camera` to limit first-person view distance.
+* Added first-person graphics controls:
+
+```ini
+[Graphics]
+FirstPersonShadowDistance = 50
+FirstPersonShadowCascades = 2
+FirstPersonLodBias = 0.8
+UseOcclusionCulling = true
+DisableCameraEffects = false
+```
+
+### Changed
+
+* First-person mode now captures and restores camera far clip, occlusion culling, shadow distance, shadow cascades, and LOD bias.
+* Shadow and LOD overrides are capped so first-person mode does not raise the player's current graphics cost.
+* Camera effect disabling is optional and restores each component to its previous enabled state when first person ends.
+
+### Notes
+
+* Set `FarClip = 0`, `FirstPersonShadowDistance = -1`, `FirstPersonShadowCascades = -1`, and `FirstPersonLodBias = -1` to keep current game graphics distances.
+* Actual FPS gains depend on the scene, hardware, world density, and other installed mods.
+
 ## v1.2.2
 
 Fix wrong file upload for real this time.

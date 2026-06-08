@@ -20,6 +20,7 @@ The camera tracks your character's animated head when possible, keeps your body 
 - Keeps held items visible.
 - Preserves vanilla movement and mouse behavior.
 - Supports configurable FOV, near clip, camera offsets, body rotation, and attached-camera limits.
+- Adds first-person graphics optimization options for far clip, shadows, LOD bias, occlusion culling, and camera effects.
 - Temporarily restores normal visibility when the camera override is paused by menus or the minimap.
 
 ## Default controls
@@ -43,8 +44,18 @@ AttachedCameraExtraForwardOffset = 0.08
 AttachedCameraMaxYaw = 80
 AttachedCameraMaxPitch = 55
 
+[Camera]
+FarClip = 250
+
 [Camera Motion]
 HeadBobAmount = 0.5
+
+[Graphics]
+FirstPersonShadowDistance = 50
+FirstPersonShadowCascades = 2
+FirstPersonLodBias = 0.8
+UseOcclusionCulling = true
+DisableCameraEffects = false
 
 [Visibility]
 HideHead = false
@@ -58,6 +69,23 @@ If you see your character's head or helmet clipping into the camera, enable:
 HideHead = true
 ```
 
+## Performance tuning
+
+Version 1.3.0 lowers first-person rendering cost by reducing first-person view distance, shadow distance, shadow cascades, and distant-object LOD bias while first person is active.
+
+If you prefer the game's current graphics distances, use these opt-out values:
+
+```ini
+[Camera]
+FarClip = 0
+
+[Graphics]
+FirstPersonShadowDistance = -1
+FirstPersonShadowCascades = -1
+FirstPersonLodBias = -1
+DisableCameraEffects = false
+```
+
 ## Notable config options
 
 | Section | Option | Default | Description |
@@ -68,6 +96,12 @@ HideHead = true
 | `Camera Overrides` | `AttachedCameraExtraForwardOffset` | `0.08` | Extra forward offset added to the captured head-level camera position while attached. |
 | `Camera Overrides` | `AttachedCameraMaxYaw` | `80` | Maximum left/right camera yaw from the attached body direction. |
 | `Camera Overrides` | `AttachedCameraMaxPitch` | `55` | Maximum up/down camera pitch while attached. |
+| `Camera` | `FarClip` | `250` | Far clipping plane while first-person mode is active. `0` keeps the game's current far clip. |
+| `Graphics` | `FirstPersonShadowDistance` | `50` | Maximum shadow draw distance while first-person mode is active. `-1` keeps the game's current shadow distance. |
+| `Graphics` | `FirstPersonShadowCascades` | `2` | Maximum shadow cascade count while first-person mode is active. `-1` keeps the game's current cascade count. |
+| `Graphics` | `FirstPersonLodBias` | `0.8` | Maximum LOD bias while first-person mode is active. Lower values switch distant objects to cheaper LODs sooner. |
+| `Graphics` | `UseOcclusionCulling` | `true` | Enables camera occlusion culling while first-person mode is active. |
+| `Graphics` | `DisableCameraEffects` | `false` | Disables known camera post-processing components while first-person mode is active, then restores them on exit. |
 | `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much fast animation-based head movement affects the camera. `0` keeps only filtered head tracking. `1` uses full tracked head motion. |
 | `Visibility` | `HideHead` | `false` | Hides the local head model and head-slot equipment from the camera. Head-slot equipment keeps casting shadows where possible. Held items remain visible. |
 

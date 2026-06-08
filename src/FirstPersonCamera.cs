@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
@@ -17,6 +19,19 @@ internal static class GameCameraUpdatePatch
 internal static class FirstPersonCamera
 {
     private const float HeadBobFilterSpeed = 3f;
+    private const float MinimumFarClipPadding = 1f;
+
+    private static readonly string[] CameraEffectTypeNameFragments =
+    {
+        "PostProcessLayer",
+        "PostProcessVolume",
+        "Bloom",
+        "DepthOfField",
+        "MotionBlur",
+        "ScreenSpaceAmbientOcclusion",
+        "SunShafts",
+        "Vignette"
+    };
 
     private static readonly FieldInfo? CameraField =
         AccessTools.Field(typeof(GameCamera), "m_camera");
@@ -34,17 +49,31 @@ internal static class FirstPersonCamera
         AccessTools.Field(typeof(Player), "m_crouch") ??
         AccessTools.Field(typeof(Character), "m_crouch");
 
+    // Camera defaults are captured on first-person entry and restored on exit.
     private static Camera? _lastCamera;
+    private static Camera? _savedCamera;
     private static Player? _cachedAnchorPlayer;
     private static Transform? _cachedHeadAnchor;
     private static float _originalFov;
     private static float _originalNearClip;
+    private static float _originalFarClip;
+    private static bool _originalUseOcclusionCulling;
     private static bool _savedOriginals;
 
+    // Quality defaults are global Unity settings, so they must be restored explicitly.
+    private static float _originalShadowDistance;
+    private static int _originalShadowCascades;
+    private static float _originalLodBias;
+
+    // Camera effect components are restored to their previous enabled state.
+    private static readonly Dictionary<Behaviour, bool> CameraEffectStates = new();
+
+    // Head tracking state smooths high-frequency head animation.
     private static Player? _filteredHeadPlayer;
     private static Vector3 _filteredLocalHeadPosition;
     private static bool _hasFilteredHeadPosition;
 
+    // Attached camera state keeps seats, ships, and hold-fast points stable.
     private static Player? _attachedCameraPlayer;
     private static Vector3 _attachedLocalCameraPosition;
     private static bool _hasAttachedCameraPosition;
@@ -60,7 +89,6 @@ internal static class FirstPersonCamera
             return;
 
         _lastCamera = camera;
-        SaveOriginalCameraValues(camera);
 
         Player? player = Player.m_localPlayer;
 
@@ -82,6 +110,7 @@ internal static class FirstPersonCamera
         if (Plugin.LockBodyToCamera.Value && !lockAttachedCamera)
             LockBodyYawToCamera(player, vanillaCameraRotation);
 
+        SaveOriginalCameraValues(camera);
         ApplyFirstPersonCamera(gameCamera, camera, player, vanillaCameraRotation, lockAttachedCamera);
 
         LocalPlayerVisibilityOverride.ForceVisible(player);
@@ -109,11 +138,24 @@ internal static class FirstPersonCamera
 
     private static void SaveOriginalCameraValues(Camera camera)
     {
-        if (_savedOriginals)
+        if (_savedOriginals && _savedCamera == camera)
             return;
 
+        if (_savedOriginals && _savedCamera != null)
+            RestoreCamera(_savedCamera);
+
+        // Capture camera state that the first-person renderer overrides.
+        _savedCamera = camera;
         _originalFov = camera.fieldOfView;
         _originalNearClip = camera.nearClipPlane;
+        _originalFarClip = camera.farClipPlane;
+        _originalUseOcclusionCulling = camera.useOcclusionCulling;
+
+        // Capture global quality state changed for first-person performance.
+        _originalShadowDistance = QualitySettings.shadowDistance;
+        _originalShadowCascades = QualitySettings.shadowCascades;
+        _originalLodBias = QualitySettings.lodBias;
+
         _savedOriginals = true;
     }
 
@@ -265,8 +307,14 @@ internal static class FirstPersonCamera
         return angle;
     }
 
-    private static Vector3 GetHeadBobScaledAnchorPosition(Player player, Transform anchor, bool hasHeadAnchor)
+    private static Vector3 GetHeadBobScaledAnchorPosition(Player player, Transform? anchor, bool hasHeadAnchor)
     {
+        if (anchor == null)
+        {
+            ResetHeadBobFilter();
+            return GetFallbackEyePosition(player);
+        }
+
         if (!hasHeadAnchor)
         {
             ResetHeadBobFilter();
@@ -412,8 +460,108 @@ internal static class FirstPersonCamera
 
         if (Plugin.UseCustomFov.Value)
             camera.fieldOfView = Mathf.Clamp(Plugin.Fov.Value, 40f, 120f);
+        else
+            camera.fieldOfView = _originalFov;
 
+        ApplyFirstPersonRendering(camera);
+    }
+
+    private static void ApplyFirstPersonRendering(Camera camera)
+    {
+        // Camera-level rendering work is reduced first because it affects every frame.
+        ApplyClipPlanes(camera);
+        camera.useOcclusionCulling = Plugin.UseOcclusionCulling.Value;
+
+        // Global quality settings reduce shadow and LOD cost while first person is active.
+        ApplyQualityOverrides();
+
+        // Camera effects are optional because some players prefer the visual tradeoff.
+        ApplyCameraEffectOverrides(camera);
+    }
+
+    private static void ApplyClipPlanes(Camera camera)
+    {
         camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
+
+        if (Plugin.FarClip.Value <= 0f)
+        {
+            camera.farClipPlane = _originalFarClip;
+            return;
+        }
+
+        float requestedFarClip = Mathf.Max(Plugin.FarClip.Value, camera.nearClipPlane + MinimumFarClipPadding);
+        float originalFarClip = _originalFarClip > 0f ? _originalFarClip : camera.farClipPlane;
+        float limitedFarClip = Mathf.Min(originalFarClip, requestedFarClip);
+        camera.farClipPlane = Mathf.Max(limitedFarClip, camera.nearClipPlane + MinimumFarClipPadding);
+    }
+
+    private static void ApplyQualityOverrides()
+    {
+        if (Plugin.FirstPersonShadowDistance.Value >= 0f)
+        {
+            float requestedShadowDistance = Mathf.Max(0f, Plugin.FirstPersonShadowDistance.Value);
+            QualitySettings.shadowDistance = Mathf.Min(_originalShadowDistance, requestedShadowDistance);
+        }
+
+        if (Plugin.FirstPersonShadowCascades.Value >= 0)
+        {
+            int requestedShadowCascades = NormalizeShadowCascades(Plugin.FirstPersonShadowCascades.Value);
+            QualitySettings.shadowCascades = Mathf.Min(_originalShadowCascades, requestedShadowCascades);
+        }
+
+        if (Plugin.FirstPersonLodBias.Value > 0f)
+        {
+            float requestedLodBias = Mathf.Max(0.1f, Plugin.FirstPersonLodBias.Value);
+            QualitySettings.lodBias = Mathf.Min(_originalLodBias, requestedLodBias);
+        }
+    }
+
+    private static int NormalizeShadowCascades(int value)
+    {
+        if (value <= 0)
+            return 0;
+
+        if (value <= 2)
+            return 2;
+
+        return 4;
+    }
+
+    private static void ApplyCameraEffectOverrides(Camera camera)
+    {
+        if (!Plugin.DisableCameraEffects.Value)
+        {
+            RestoreCameraEffectStates();
+            return;
+        }
+
+        foreach (Behaviour component in camera.GetComponents<Behaviour>())
+        {
+            if (component == null || !IsCameraEffectComponent(component))
+                continue;
+
+            if (!CameraEffectStates.ContainsKey(component))
+                CameraEffectStates.Add(component, component.enabled);
+
+            component.enabled = false;
+        }
+    }
+
+    private static bool IsCameraEffectComponent(Behaviour component)
+    {
+        Type type = component.GetType();
+        string typeName = type.FullName ?? type.Name;
+
+        if (string.Equals(typeName, "UnityEngine.Rendering.Volume", StringComparison.Ordinal))
+            return true;
+
+        foreach (string fragment in CameraEffectTypeNameFragments)
+        {
+            if (typeName.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+        }
+
+        return false;
     }
 
     private static void RestoreCamera(Camera camera)
@@ -421,8 +569,34 @@ internal static class FirstPersonCamera
         if (!_savedOriginals)
             return;
 
-        camera.fieldOfView = _originalFov;
-        camera.nearClipPlane = _originalNearClip;
+        Camera? targetCamera = _savedCamera != null ? _savedCamera : camera;
+
+        if (targetCamera != null)
+        {
+            targetCamera.fieldOfView = _originalFov;
+            targetCamera.nearClipPlane = _originalNearClip;
+            targetCamera.farClipPlane = _originalFarClip;
+            targetCamera.useOcclusionCulling = _originalUseOcclusionCulling;
+        }
+
+        QualitySettings.shadowDistance = _originalShadowDistance;
+        QualitySettings.shadowCascades = _originalShadowCascades;
+        QualitySettings.lodBias = _originalLodBias;
+        RestoreCameraEffectStates();
+
+        _savedCamera = null;
+        _savedOriginals = false;
+    }
+
+    private static void RestoreCameraEffectStates()
+    {
+        foreach (KeyValuePair<Behaviour, bool> effectState in CameraEffectStates)
+        {
+            if (effectState.Key != null)
+                effectState.Key.enabled = effectState.Value;
+        }
+
+        CameraEffectStates.Clear();
     }
 
     private static void ResetHeadBobFilter()

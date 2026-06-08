@@ -12,7 +12,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.geronimo.valheim.immersivefirstperson";
     public const string PluginName = "Immersive First Person";
-    public const string PluginVersion = "1.0.0";
+    public const string PluginVersion = "1.3.0";
 
     internal static ManualLogSource Log = null!;
 
@@ -34,11 +34,18 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> DownLookExtraVerticalOffset = null!;
     internal static ConfigEntry<float> CrouchVerticalOffset = null!;
     internal static ConfigEntry<float> NearClip = null!;
+    internal static ConfigEntry<float> FarClip = null!;
     internal static ConfigEntry<bool> UseCustomFov = null!;
     internal static ConfigEntry<float> Fov = null!;
     internal static ConfigEntry<float> HeadBobAmount = null!;
     internal static ConfigEntry<bool> LockBodyToCamera = null!;
     internal static ConfigEntry<float> BodyRotationFollowSpeed = null!;
+
+    internal static ConfigEntry<float> FirstPersonShadowDistance = null!;
+    internal static ConfigEntry<int> FirstPersonShadowCascades = null!;
+    internal static ConfigEntry<float> FirstPersonLodBias = null!;
+    internal static ConfigEntry<bool> UseOcclusionCulling = null!;
+    internal static ConfigEntry<bool> DisableCameraEffects = null!;
 
     internal static ConfigEntry<bool> HideHead = null!;
     internal static ConfigEntry<bool> ForceBodyVisible = null!;
@@ -52,10 +59,14 @@ public sealed class Plugin : BaseUnityPlugin
     {
         Log = Logger;
 
+        // General settings.
         EnableMod = Config.Bind("General", "EnableMod", true, "Enable Immersive First Person.");
+
+        // Input settings.
         ToggleFirstPersonKey = Config.Bind("Input", "ToggleFirstPersonKey", KeyCode.F6, "Press this key to toggle first-person mode.");
         DefaultToFirstPerson = Config.Bind("Input", "DefaultToFirstPerson", false, "Start in first-person mode when the local player is ready.");
 
+        // Camera override settings.
         OverrideForcedThirdPerson = Config.Bind("Camera Overrides", "OverrideForcedThirdPerson", true, "Keep first-person mode active during gameplay interactions that normally force third person, such as inventory, crafting, ships, hold fast, and attached states.");
         LockCameraWhileAttached = Config.Bind("Camera Overrides", "LockCameraWhileAttached", true, "Lock the first-person camera to a captured head-level body offset while attached to seats, ships, hold-fast points, and similar attach points. Reduces attachment jitter and rubberbanding.");
         AttachedCameraExtraVerticalOffset = Config.Bind("Camera Overrides", "AttachedCameraExtraVerticalOffset", 0f, "Extra vertical offset added to the captured head-level camera position while attached.");
@@ -63,6 +74,7 @@ public sealed class Plugin : BaseUnityPlugin
         AttachedCameraMaxYaw = Config.Bind("Camera Overrides", "AttachedCameraMaxYaw", 80f, new ConfigDescription("Maximum left/right camera yaw from the attached body direction.", new AcceptableValueRange<float>(20f, 180f)));
         AttachedCameraMaxPitch = Config.Bind("Camera Overrides", "AttachedCameraMaxPitch", 55f, new ConfigDescription("Maximum up/down camera pitch while attached.", new AcceptableValueRange<float>(20f, 89f)));
 
+        // Camera placement settings.
         UseHeadTrackedAnchor = Config.Bind("Camera", "UseHeadTrackedAnchor", true, "Anchor the camera to the animated head bone when found. Falls back to the player eye transform.");
         CameraVerticalOffset = Config.Bind("Camera", "CameraVerticalOffset", 0.04f, "Vertical offset from the selected camera anchor.");
         CameraForwardOffset = Config.Bind("Camera", "CameraForwardOffset", 0.16f, "Forward offset from the selected camera anchor to keep the torso out of the view.");
@@ -70,15 +82,25 @@ public sealed class Plugin : BaseUnityPlugin
         DownLookExtraVerticalOffset = Config.Bind("Camera", "DownLookExtraVerticalOffset", 0.06f, "Extra upward offset applied gradually when looking down.");
         CrouchVerticalOffset = Config.Bind("Camera", "CrouchVerticalOffset", -0.45f, "Additional vertical camera offset while crouching or sneaking when head tracking is unavailable or head bob is reduced.");
         NearClip = Config.Bind("Camera", "NearClip", 0.02f, "Near clipping plane while first-person mode is active.");
+        FarClip = Config.Bind("Camera", "FarClip", 250f, new ConfigDescription("Far clipping plane while first-person mode is active. Set to 0 to keep the game's current far clip.", new AcceptableValueRange<float>(0f, 5000f)));
         UseCustomFov = Config.Bind("Camera", "UseCustomFov", true, "Use the configured first-person FOV.");
         Fov = Config.Bind("Camera", "FOV", 75f, "Field of view while first-person mode is active.");
         HeadBobAmount = Config.Bind("Camera Motion", "HeadBobAmount", 0.5f, new ConfigDescription("Controls how much fast animation-based head motion affects the first-person camera. 0 keeps only filtered head tracking. 1 uses full tracked head motion.", new AcceptableValueRange<float>(0f, 1f)));
         LockBodyToCamera = Config.Bind("Camera", "LockBodyToCamera", true, "Rotate the local player body yaw to match vanilla camera yaw while first-person mode is active.");
         BodyRotationFollowSpeed = Config.Bind("Camera", "BodyRotationFollowSpeed", 0f, "How quickly the body rotates to the camera yaw. Set to 0 for instant body lock.");
 
+        // Graphics optimization settings.
+        FirstPersonShadowDistance = Config.Bind("Graphics", "FirstPersonShadowDistance", 50f, new ConfigDescription("Maximum shadow draw distance while first-person mode is active. Set to -1 to keep the game's current shadow distance.", new AcceptableValueRange<float>(-1f, 500f)));
+        FirstPersonShadowCascades = Config.Bind("Graphics", "FirstPersonShadowCascades", 2, new ConfigDescription("Maximum shadow cascade count while first-person mode is active. Set to -1 to keep the game's current cascade count. Values are normalized to 0, 2, or 4.", new AcceptableValueRange<int>(-1, 4)));
+        FirstPersonLodBias = Config.Bind("Graphics", "FirstPersonLodBias", 0.8f, new ConfigDescription("Maximum LOD bias while first-person mode is active. Lower values switch distant objects to cheaper LODs sooner. Set to -1 to keep the game's current LOD bias.", new AcceptableValueRange<float>(-1f, 2f)));
+        UseOcclusionCulling = Config.Bind("Graphics", "UseOcclusionCulling", true, "Enable camera occlusion culling while first-person mode is active.");
+        DisableCameraEffects = Config.Bind("Graphics", "DisableCameraEffects", false, "Disable known camera post-processing components while first-person mode is active, then restore them when leaving first person.");
+
+        // Visibility settings.
         HideHead = Config.Bind("Visibility", "HideHead", false, "Hide the local player's head and head-slot equipment from the first-person camera while preserving shadows.");
         ForceBodyVisible = Config.Bind("Visibility", "ForceBodyVisible", true, "Force the local player body and held items visible while first-person mode is active.");
 
+        // Debug settings.
         EnableDebugLogs = Config.Bind("Debug", "EnableDebugLogs", false, "Enable extra logs for camera, state, visibility, and cleanup behavior.");
         LogRendererNames = Config.Bind("Debug", "LogRendererNames", false, "Log local player renderer names, paths, materials, and enabled states once when first-person mode activates.");
 
