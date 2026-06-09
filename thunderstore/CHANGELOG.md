@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.3.2
+
+Fixed file upload
+
 ## v1.3.1
 
 ### Added
