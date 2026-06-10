@@ -10,7 +10,7 @@ Immersive First Person adds a grounded first-person camera to Valheim without re
 
 The camera tracks the player's animated head when possible, keeps the local body visible, and includes body-yaw locking so you do not end up staring at your own back in first person. Head hiding is disabled by default to preserve normal character shadows, but an optional head visibility setting is available for users who experience clipping with specific armor or equipment.
 
-Version 1.3.1 adds first-person Shoulder Peek with configurable hold or toggle input, while keeping the camera strictly in first person.
+Version 1.3.3 fixes head and helmet hiding edge cases while keeping Shoulder Peek configurable with hold or toggle input.
 
 ## Features
 
@@ -86,14 +86,11 @@ ForceBodyVisible = true
 VisibilityRefreshInterval = 1
 ```
 
-## v1.3.1 changelog
+## v1.3.3 changelog
 
-Shoulder Peek Update.
+Visibility Fix Update.
 
-- Added first-person Shoulder Peek.
-- Added config option to enable or disable Shoulder Peek.
-- Added Shoulder Peek input mode config with Hold and Toggle behavior.
-- Added configurable left and right peek keybinds.
-- Added configurable peek offset and smoothing speed.
-- Updated mod version from v1.3.0 to v1.3.1.
-- Shoulder Peek resets when leaving first-person mode to prevent stuck camera offsets.
+- Fixed `HideHead` matching weapon parts with `head` in mesh or material names.
+- Improved `HideHead` behavior for helmets and characters where the head is part of a shared body mesh.
+- Fixed helmet-slot transform compensation that could make equipped helmets appear far away or in the skybox.
+- Updated mod version to v1.3.3.

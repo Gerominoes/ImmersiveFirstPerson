@@ -11,6 +11,50 @@ internal static class BodyVisibilityController
     private static Player? _cachedPlayer;
     private static bool _captured;
 
+    // Held item markers keep weapon parts out of the head-only exclusion path.
+    private static readonly string[] HeldItemKeywords =
+    {
+        "hand",
+        "right",
+        "left",
+        "weapon",
+        "sword",
+        "axe",
+        "mace",
+        "hammer",
+        "club",
+        "knife",
+        "bow",
+        "arrow",
+        "shield",
+        "torch",
+        "tool",
+        "pickaxe",
+        "hatchet",
+        "battleaxe",
+        "sledge",
+        "spear",
+        "atgeir",
+        "crossbow",
+        "buckler",
+        "staff",
+        "wand",
+        "cultivator",
+        "fishing",
+        "itemstand"
+    };
+
+    private static readonly string[] HeadKeywords =
+    {
+        "head",
+        "hair",
+        "face",
+        "jaw",
+        "eye",
+        "helmet",
+        "helm"
+    };
+
     internal static void Update(Player player)
     {
         if (player == null || player != Player.m_localPlayer)
@@ -83,18 +127,54 @@ internal static class BodyVisibilityController
         string path = renderer.transform != null ? RendererScanner.GetPath(renderer.transform) : string.Empty;
         string descriptor = $"{renderer.name} {path}".ToLowerInvariant();
 
-        return Contains(descriptor, "head") ||
-               Contains(descriptor, "hair") ||
-               Contains(descriptor, "face") ||
-               Contains(descriptor, "jaw") ||
-               Contains(descriptor, "eye") ||
-               Contains(descriptor, "helmet") ||
-               Contains(descriptor, "helm");
+        if (ContainsAny(descriptor, HeldItemKeywords))
+            return false;
+
+        return ContainsAnyHeadKeyword(descriptor);
     }
 
-    private static bool Contains(string value, string keyword)
+    private static bool ContainsAny(string value, string[] keywords)
     {
-        return value.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0;
+        foreach (string keyword in keywords)
+        {
+            if (value.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsAnyHeadKeyword(string value)
+    {
+        foreach (string keyword in HeadKeywords)
+        {
+            if (ContainsKeywordTokenOrSafePrefix(value, keyword))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsKeywordTokenOrSafePrefix(string value, string keyword)
+    {
+        int index = value.IndexOf(keyword, StringComparison.OrdinalIgnoreCase);
+
+        while (index >= 0)
+        {
+            bool startsAtToken = index == 0 || !char.IsLetterOrDigit(value[index - 1]);
+            int end = index + keyword.Length;
+            bool endsAtToken = end >= value.Length || !char.IsLetterOrDigit(value[end]);
+
+            if (startsAtToken && endsAtToken)
+                return true;
+
+            if (startsAtToken && keyword.Length >= 5)
+                return true;
+
+            index = value.IndexOf(keyword, end, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
     }
 
     private static void RemoveDestroyedRenderers()

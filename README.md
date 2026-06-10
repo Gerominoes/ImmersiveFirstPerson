@@ -69,7 +69,7 @@ VisibilityRefreshInterval = 1
 
 ## Performance
 
-Version 1.3.1 keeps view distance and LOD unchanged for immersion. The optimization settings focus on shadows, occlusion culling, optional camera effects, and head-hiding scan cost.
+Version 1.3.3 keeps view distance and LOD unchanged for immersion. The optimization settings focus on shadows, occlusion culling, optional camera effects, and head-hiding scan cost.
 
 To keep the game's current shadow settings:
 

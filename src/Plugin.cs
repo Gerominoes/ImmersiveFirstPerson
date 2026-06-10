@@ -19,7 +19,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.geronimo.valheim.immersivefirstperson";
     public const string PluginName = "Immersive First Person";
-    public const string PluginVersion = "1.3.1";
+    public const string PluginVersion = "1.3.3";
 
     internal static ManualLogSource Log = null!;
 

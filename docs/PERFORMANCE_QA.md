@@ -1,4 +1,4 @@
-# Immersive First Person 1.3.1 Performance QA
+# Immersive First Person 1.3.3 Performance QA
 
 Use this worksheet for the in-game profiler and camera regression pass before publishing the Shoulder Peek Update.
 
@@ -24,7 +24,7 @@ Use this worksheet for the in-game profiler and camera regression pass before pu
 
 ## Metrics
 
-| Metric | Third Person | First Person Before 1.3.1 | First Person 1.3.1 | Notes |
+| Metric | Third Person | First Person Before 1.3.3 | First Person 1.3.3 | Notes |
 | --- | ---: | ---: | ---: | --- |
 | FPS | TBD | TBD | TBD | Capture from the same scene and camera direction. |
 | CPU Main Thread ms | TBD | TBD | TBD | Unity Profiler CPU module. |

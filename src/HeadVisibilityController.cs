@@ -11,6 +11,8 @@ internal static class HeadVisibilityController
     private const float HeadSlotClipRadius = 0.55f;
     private const float MaxHeadSlotExtent = 1.15f;
     private const float MinHeadSlotHeight = 0.9f;
+    private const float MaxHeadSlotHeight = 2.4f;
+    private const float MaxHeadSlotHorizontalDistance = 0.75f;
     private const float HeadShrinkScale = 0.001f;
     private const float HeadSlotCompensationScale = 1f / HeadShrinkScale;
     private static readonly Vector3 HeadShrinkVector = Vector3.one * HeadShrinkScale;
@@ -74,6 +76,19 @@ internal static class HeadVisibilityController
         "padded"
     };
 
+    // Head-slot hierarchy markers are stronger than mesh or material names.
+    private static readonly string[] HeadSlotHierarchyKeywords =
+    {
+        "attach_helmet",
+        "attach_helm",
+        "attach_head",
+        "helmet",
+        "helm",
+        "hair",
+        "beard",
+        "headgear"
+    };
+
     private static readonly string[] HeadBoneRejectKeywords =
     {
         "helmet",
@@ -117,6 +132,15 @@ internal static class HeadVisibilityController
         "torch",
         "tool",
         "pickaxe",
+        "hatchet",
+        "battleaxe",
+        "sledge",
+        "spear",
+        "atgeir",
+        "crossbow",
+        "buckler",
+        "staff",
+        "wand",
         "cultivator",
         "fishing",
         "itemstand"
@@ -205,6 +229,8 @@ internal static class HeadVisibilityController
 
     private static void RefreshRendererCache(Player player)
     {
+        // Refresh against unmodified attachment transforms so stale compensation cannot affect matching.
+        RestoreHeadSlotStates();
         RemoveDestroyedRenderers();
         RemoveDestroyedHeadSlotTransforms();
 
@@ -267,10 +293,14 @@ internal static class HeadVisibilityController
         if (LooksLikeFullBodyRenderer(renderer, descriptor))
             return false;
 
-        if (ContainsAny(descriptor, HeadSlotKeywords))
+        bool hasHeadSlotKeyword = ContainsAnyHeadSlotKeyword(descriptor);
+        bool hasHeadSlotHierarchy = LooksLikeHeadSlotHierarchy(renderer, descriptor);
+        bool isNearHeadOrCamera = IsSmallRendererNearHeadOrCamera(player, renderer);
+
+        if (hasHeadSlotHierarchy && (hasHeadSlotKeyword || isNearHeadOrCamera))
             return true;
 
-        return IsSmallRendererNearHeadOrCamera(player, renderer);
+        return hasHeadSlotKeyword && isNearHeadOrCamera;
     }
 
     private static bool IsSmallRendererNearHeadOrCamera(Player player, Renderer renderer)
@@ -282,9 +312,15 @@ internal static class HeadVisibilityController
         if (largestExtent > MaxHeadSlotExtent)
             return false;
 
-        float localY = player.transform.InverseTransformPoint(bounds.center).y;
+        Vector3 localCenter = player.transform.InverseTransformPoint(bounds.center);
+        float localY = localCenter.y;
 
-        if (localY < MinHeadSlotHeight)
+        if (localY < MinHeadSlotHeight || localY > MaxHeadSlotHeight)
+            return false;
+
+        Vector2 localHorizontal = new(localCenter.x, localCenter.z);
+
+        if (localHorizontal.magnitude > MaxHeadSlotHorizontalDistance)
             return false;
 
         Camera? camera = Camera.main;
@@ -328,6 +364,68 @@ internal static class HeadVisibilityController
         return builder.ToString().ToLowerInvariant();
     }
 
+    private static bool LooksLikeHeadSlotHierarchy(Renderer renderer, string descriptor)
+    {
+        if (renderer == null)
+            return false;
+
+        if (ContainsAny(descriptor, HeadSlotHierarchyKeywords))
+            return true;
+
+        if (IsTransformUnderLikelyHeadBone(renderer.transform, false))
+            return true;
+
+        if (renderer is SkinnedMeshRenderer skinnedMeshRenderer)
+        {
+            if (IsTransformUnderLikelyHeadBone(skinnedMeshRenderer.rootBone, true))
+                return true;
+
+            Transform[] bones = skinnedMeshRenderer.bones;
+
+            if (bones != null)
+            {
+                foreach (Transform bone in bones)
+                {
+                    if (IsTransformUnderLikelyHeadBone(bone, true))
+                        return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsTransformUnderLikelyHeadBone(Transform? transform, bool includeSelf)
+    {
+        // Walking ancestors lets child attachments inherit head-bone context.
+        Transform? current = includeSelf ? transform : transform?.parent;
+
+        while (current != null)
+        {
+            if (IsLikelyCharacterHeadBoneName(current.name))
+                return true;
+
+            current = current.parent;
+        }
+
+        return false;
+    }
+
+    private static bool IsLikelyCharacterHeadBoneName(string name)
+    {
+        if (name.Equals("head", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("bip_head", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("bip01 head", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("bip01head", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("bip001 head", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("bip001head", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return name.Length > 4 &&
+               name.StartsWith("head", StringComparison.OrdinalIgnoreCase) &&
+               char.IsDigit(name[4]);
+    }
+
     private static bool LooksLikeHeldItem(string descriptor)
     {
         return ContainsAny(descriptor, HeldItemKeywords);
@@ -338,7 +436,7 @@ internal static class HeadVisibilityController
         Bounds bounds = renderer.bounds;
         Vector3 size = bounds.size;
         float largestExtent = Mathf.Max(size.x, size.y, size.z);
-        bool bodyName = ContainsAny(descriptor, BodyKeywords) && !ContainsAny(descriptor, HeadSlotKeywords);
+        bool bodyName = ContainsAny(descriptor, BodyKeywords) && !ContainsAnyHeadSlotKeyword(descriptor);
         bool bodyScale = size.y > 1.2f && largestExtent > 1.4f;
 
         return bodyName || bodyScale;
@@ -350,6 +448,50 @@ internal static class HeadVisibilityController
         {
             if (value.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
                 return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsAnyHeadSlotKeyword(string value)
+    {
+        foreach (string keyword in HeadSlotKeywords)
+        {
+            if (ContainsKeywordTokenOrSafePrefix(value, keyword))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsAnyHeadBoneRejectKeyword(string value)
+    {
+        foreach (string keyword in HeadBoneRejectKeywords)
+        {
+            if (ContainsKeywordTokenOrSafePrefix(value, keyword))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsKeywordTokenOrSafePrefix(string value, string keyword)
+    {
+        int index = value.IndexOf(keyword, StringComparison.OrdinalIgnoreCase);
+
+        while (index >= 0)
+        {
+            bool startsAtToken = index == 0 || !char.IsLetterOrDigit(value[index - 1]);
+            int end = index + keyword.Length;
+            bool endsAtToken = end >= value.Length || !char.IsLetterOrDigit(value[end]);
+
+            if (startsAtToken && endsAtToken)
+                return true;
+
+            if (startsAtToken && keyword.Length >= 5)
+                return true;
+
+            index = value.IndexOf(keyword, end, StringComparison.OrdinalIgnoreCase);
         }
 
         return false;
@@ -420,14 +562,15 @@ internal static class HeadVisibilityController
         if (ContainsAny(descriptor, EquipmentSkeletonKeywords))
             return false;
 
-        if (ContainsAny(descriptor, HeadBoneRejectKeywords))
+        if (ContainsAny(descriptor, HeldItemKeywords))
+            return false;
+
+        if (ContainsAnyHeadBoneRejectKeyword(descriptor))
             return false;
 
         string name = transform.name;
-        return name.Equals("head", StringComparison.OrdinalIgnoreCase) ||
-               name.Equals("bip_head", StringComparison.OrdinalIgnoreCase) ||
-               name.Equals("bip01 head", StringComparison.OrdinalIgnoreCase) ||
-               name.IndexOf("head", StringComparison.OrdinalIgnoreCase) >= 0;
+        return IsLikelyCharacterHeadBoneName(name) ||
+               ContainsKeywordTokenOrSafePrefix(name, "head");
     }
 
     private static void CompensateHeadSlotTransforms()
@@ -444,57 +587,12 @@ internal static class HeadVisibilityController
 
             if (renderer is SkinnedMeshRenderer skinnedMeshRenderer)
             {
-                // Skinned helmets can be rooted at the hips while still using the shrunken head bone.
-                CompensateSkinnedHeadSlotRenderer(skinnedMeshRenderer);
-
                 if (skinnedMeshRenderer.rootBone != null)
                     CompensateTransformIfUnderShrunkHead(skinnedMeshRenderer.rootBone);
             }
         }
 
         RemoveDestroyedHeadSlotTransforms();
-    }
-
-    private static void CompensateSkinnedHeadSlotRenderer(SkinnedMeshRenderer skinnedMeshRenderer)
-    {
-        if (skinnedMeshRenderer == null || !IsCachedLocalRenderer(skinnedMeshRenderer))
-            return;
-
-        if (FindCompensationRootUnderShrunkHead(skinnedMeshRenderer.transform) != null)
-            return;
-
-        if (skinnedMeshRenderer.rootBone != null &&
-            FindCompensationRootUnderShrunkHead(skinnedMeshRenderer.rootBone) != null)
-            return;
-
-        // Helmet-slot meshes driven by a shrunken head bone need inverse scale for correct shadows.
-        if (UsesShrunkHeadBone(skinnedMeshRenderer))
-            CompensateHeadSlotTransform(skinnedMeshRenderer.transform, false, "scale");
-    }
-
-    private static bool UsesShrunkHeadBone(SkinnedMeshRenderer skinnedMeshRenderer)
-    {
-        if (skinnedMeshRenderer == null)
-            return false;
-
-        Transform[] bones = skinnedMeshRenderer.bones;
-
-        if (bones == null)
-            return false;
-
-        foreach (Transform bone in bones)
-        {
-            if (bone == null || !IsCachedLocalTransform(bone))
-                continue;
-
-            if (OriginalBoneScales.ContainsKey(bone))
-                return true;
-
-            if (FindCompensationRootUnderShrunkHead(bone) != null)
-                return true;
-        }
-
-        return false;
     }
 
     private static void CompensateTransformIfUnderShrunkHead(Transform transform)

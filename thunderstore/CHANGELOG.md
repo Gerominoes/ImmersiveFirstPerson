@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.3.3
+
+### Fixed
+
+* Fixed `HideHead` matching weapon parts with `head` in mesh or material names.
+* Improved `HideHead` behavior for helmets and characters where the head is part of a shared body mesh.
+* Fixed helmet-slot transform compensation that could make equipped helmets appear far away or in the skybox.
+
 ## v1.3.2
 
 Fixed file upload
