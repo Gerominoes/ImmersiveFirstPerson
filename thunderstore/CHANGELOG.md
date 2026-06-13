@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.4.0
+
+### Changed
+
+* Improved head hiding using Blacksmith's Tools.
+* Helmets now render as ShadowsOnly in first-person.
+* Head shrink is now fallback-only.
+* Improved compatibility with vanilla and custom helmets.
+
 ## v1.3.3
 
 ### Fixed

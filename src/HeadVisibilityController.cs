@@ -21,11 +21,17 @@ internal static class HeadVisibilityController
     {
         internal readonly bool Enabled;
         internal readonly ShadowCastingMode ShadowCastingMode;
+        internal readonly bool ReceiveShadows;
+        internal readonly int Layer;
+        internal readonly Material[] SharedMaterials;
 
         internal RendererState(Renderer renderer)
         {
             Enabled = renderer.enabled;
             ShadowCastingMode = renderer.shadowCastingMode;
+            ReceiveShadows = renderer.receiveShadows;
+            Layer = renderer.gameObject.layer;
+            SharedMaterials = renderer.sharedMaterials ?? Array.Empty<Material>();
         }
     }
 
@@ -46,13 +52,16 @@ internal static class HeadVisibilityController
     private static readonly Dictionary<Transform, TransformState> OriginalHeadSlotStates = new();
     private static readonly HashSet<Renderer> DesiredRenderers = new();
     private static readonly List<Transform> CachedHeadBones = new();
+    private static readonly List<Renderer> ManagedHelmetRenderers = new();
     private static readonly List<Renderer?> RenderersToRemove = new();
     private static readonly List<Transform?> BonesToRemove = new();
     private static readonly List<Transform?> HeadSlotTransformsToRemove = new();
 
     private static Player? _cachedPlayer;
     private static bool _active;
+    private static bool _headBoneCacheInitialized;
     private static float _nextRefreshTime;
+    private static string? _lastFallbackReason;
 
     private static readonly string[] HeadSlotKeywords =
     {
@@ -178,10 +187,21 @@ internal static class HeadVisibilityController
 
     internal static void ForceVisible()
     {
+        BlacksmithHeadHider.Restore();
+        HelmetShadowController.Restore();
         RestoreHeadSlotStates();
         RestoreBoneScales();
         RestoreRendererStates();
         ResetCache();
+    }
+
+    internal static void RequestRefresh()
+    {
+        // Equipment changes invalidate all cached helmet renderers and Blacksmith rule keys.
+        _nextRefreshTime = 0f;
+        _headBoneCacheInitialized = false;
+        BlacksmithHeadHider.RequestRefresh();
+        HelmetShadowController.RequestRefresh();
     }
 
     private static void Apply(Player player, bool shouldHide)
@@ -215,16 +235,85 @@ internal static class HeadVisibilityController
             _nextRefreshTime = 0f;
         }
 
-        if (Time.unscaledTime >= _nextRefreshTime)
+        HelmetShadowController.Update(player, true);
+
+        bool refreshCaches = Time.unscaledTime >= _nextRefreshTime;
+
+        if (refreshCaches)
         {
             RefreshRendererCache(player);
-            RefreshHeadBoneCache(player);
             _nextRefreshTime = Time.unscaledTime + Mathf.Clamp(Plugin.VisibilityRefreshInterval.Value, 0.1f, 10f);
         }
 
+        HideCachedRenderersShadowsOnly();
+
+        // Helmet state is applied after legacy head-slot cleanup so helmet renderers keep ShadowsOnly.
+        HelmetShadowController.Update(player, true);
+
+        if (ShouldUseBlacksmith(player, out string fallbackReason))
+        {
+            RestoreHeadSlotStates();
+            RestoreBoneScales();
+            _lastFallbackReason = null;
+            return;
+        }
+
+        if (!ShouldUseShrinkFallback(fallbackReason))
+        {
+            RestoreHeadSlotStates();
+            RestoreBoneScales();
+            return;
+        }
+
+        BlacksmithHeadHider.Restore();
+        LogFallbackUse(fallbackReason);
+
+        if (refreshCaches || !_headBoneCacheInitialized)
+            RefreshHeadBoneCache(player);
+
         ApplyCachedHeadBoneScale();
         CompensateHeadSlotTransforms();
-        HideCachedRenderersShadowsOnly();
+    }
+
+    private static bool ShouldUseBlacksmith(Player player, out string fallbackReason)
+    {
+        fallbackReason = string.Empty;
+
+        if (Plugin.HeadHidingMode.Value == HeadHidingMode.ShrinkFallback)
+        {
+            fallbackReason = "ShrinkFallback mode is selected";
+            return false;
+        }
+
+        if (BlacksmithHeadHider.TryApply(player, out fallbackReason))
+            return true;
+
+        if (Plugin.HeadHidingMode.Value == HeadHidingMode.BlacksmithTools)
+        {
+            Plugin.HeadHidingDebugLog($"BlacksmithTools mode did not hide the head: {fallbackReason}.");
+            return false;
+        }
+
+        return false;
+    }
+
+    private static bool ShouldUseShrinkFallback(string fallbackReason)
+    {
+        return Plugin.HeadHidingMode.Value == HeadHidingMode.ShrinkFallback ||
+               Plugin.HeadHidingMode.Value == HeadHidingMode.Auto && !string.IsNullOrEmpty(fallbackReason);
+    }
+
+    private static void LogFallbackUse(string fallbackReason)
+    {
+        string reason = string.IsNullOrEmpty(fallbackReason)
+            ? "Blacksmith head hiding was unavailable"
+            : fallbackReason;
+
+        if (string.Equals(_lastFallbackReason, reason, StringComparison.Ordinal))
+            return;
+
+        _lastFallbackReason = reason;
+        Plugin.Log.LogWarning($"Using first-person head shrink fallback because {reason}.");
     }
 
     private static void RefreshRendererCache(Player player)
@@ -243,6 +332,9 @@ internal static class HeadVisibilityController
                 continue;
 
             if (!IsRendererOwnedByPlayer(player, renderer))
+                continue;
+
+            if (HelmetShadowController.IsManagedRenderer(renderer))
                 continue;
 
             if (ShouldHideHeadSlotRenderer(player, renderer))
@@ -518,6 +610,7 @@ internal static class HeadVisibilityController
     private static void RefreshHeadBoneCache(Player player)
     {
         RemoveDestroyedBones();
+        _headBoneCacheInitialized = true;
 
         Transform[] transforms = player.GetComponentsInChildren<Transform>(true);
 
@@ -590,6 +683,19 @@ internal static class HeadVisibilityController
                 if (skinnedMeshRenderer.rootBone != null)
                     CompensateTransformIfUnderShrunkHead(skinnedMeshRenderer.rootBone);
             }
+        }
+
+        HelmetShadowController.CopyManagedRenderers(ManagedHelmetRenderers);
+
+        foreach (Renderer renderer in ManagedHelmetRenderers)
+        {
+            if (renderer == null)
+                continue;
+
+            CompensateTransformIfUnderShrunkHead(renderer.transform);
+
+            if (renderer is SkinnedMeshRenderer skinnedMeshRenderer && skinnedMeshRenderer.rootBone != null)
+                CompensateTransformIfUnderShrunkHead(skinnedMeshRenderer.rootBone);
         }
 
         RemoveDestroyedHeadSlotTransforms();
@@ -665,6 +771,11 @@ internal static class HeadVisibilityController
 
             renderer.enabled = entry.Value.Enabled;
             renderer.shadowCastingMode = entry.Value.ShadowCastingMode;
+            renderer.receiveShadows = entry.Value.ReceiveShadows;
+            renderer.sharedMaterials = entry.Value.SharedMaterials;
+
+            if (renderer.gameObject != null)
+                renderer.gameObject.layer = entry.Value.Layer;
         }
 
         OriginalRendererStates.Clear();
@@ -681,6 +792,11 @@ internal static class HeadVisibilityController
         {
             renderer.enabled = originalState.Enabled;
             renderer.shadowCastingMode = originalState.ShadowCastingMode;
+            renderer.receiveShadows = originalState.ReceiveShadows;
+            renderer.sharedMaterials = originalState.SharedMaterials;
+
+            if (renderer.gameObject != null)
+                renderer.gameObject.layer = originalState.Layer;
         }
     }
 
@@ -830,14 +946,17 @@ internal static class HeadVisibilityController
     {
         _cachedPlayer = null;
         _active = false;
+        _headBoneCacheInitialized = false;
         _nextRefreshTime = 0f;
         OriginalRendererStates.Clear();
         OriginalBoneScales.Clear();
         OriginalHeadSlotStates.Clear();
         DesiredRenderers.Clear();
         CachedHeadBones.Clear();
+        ManagedHelmetRenderers.Clear();
         RenderersToRemove.Clear();
         BonesToRemove.Clear();
         HeadSlotTransformsToRemove.Clear();
+        _lastFallbackReason = null;
     }
 }

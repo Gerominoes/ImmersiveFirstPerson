@@ -13,13 +13,23 @@ public enum ShoulderPeekMode
     Toggle
 }
 
+// Head hiding modes control whether Blacksmith body-part hiding or the legacy shrink fallback is used.
+public enum HeadHidingMode
+{
+    BlacksmithTools,
+    Auto,
+    ShrinkFallback
+}
+
 [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
+[BepInDependency(BlacksmithToolsPluginGuid, BepInDependency.DependencyFlags.HardDependency)]
 [BepInProcess("valheim.exe")]
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.geronimo.valheim.immersivefirstperson";
     public const string PluginName = "Immersive First Person";
-    public const string PluginVersion = "1.3.3";
+    public const string PluginVersion = "1.4.0";
+    public const string BlacksmithToolsPluginGuid = "GoldenJude_BlacksmithTools";
 
     internal static ManualLogSource Log = null!;
 
@@ -60,10 +70,12 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> DisableCameraEffects = null!;
 
     internal static ConfigEntry<bool> HideHead = null!;
+    internal static ConfigEntry<HeadHidingMode> HeadHidingMode = null!;
     internal static ConfigEntry<bool> ForceBodyVisible = null!;
     internal static ConfigEntry<float> VisibilityRefreshInterval = null!;
 
     internal static ConfigEntry<bool> EnableDebugLogs = null!;
+    internal static ConfigEntry<bool> LogHeadHidingDebug = null!;
     internal static ConfigEntry<bool> LogRendererNames = null!;
 
     private Harmony _harmony = null!;
@@ -117,11 +129,13 @@ public sealed class Plugin : BaseUnityPlugin
 
         // Visibility settings.
         HideHead = Config.Bind("Visibility", "HideHead", false, "Hide the local player's head and head-slot equipment from the first-person camera while preserving shadows.");
+        HeadHidingMode = Config.Bind("Visibility", "HeadHidingMode", ImmersiveFirstPerson.HeadHidingMode.Auto, "Head hiding backend. Auto uses Blacksmith's Tools first and falls back to head shrink when validation fails. BlacksmithTools only uses Blacksmith's Tools. ShrinkFallback uses the legacy head bone shrink path.");
         ForceBodyVisible = Config.Bind("Visibility", "ForceBodyVisible", true, "Force the local player body and held items visible while first-person mode is active.");
         VisibilityRefreshInterval = Config.Bind("Visibility", "VisibilityRefreshInterval", 1f, new ConfigDescription("Seconds between head-slot and head-bone refresh scans while HideHead is enabled. Lower values detect equipment changes sooner and cost more CPU.", new AcceptableValueRange<float>(0.1f, 10f)));
 
         // Debug settings.
         EnableDebugLogs = Config.Bind("Debug", "EnableDebugLogs", false, "Enable extra logs for camera, state, visibility, and cleanup behavior.");
+        LogHeadHidingDebug = Config.Bind("Debug", "LogHeadHidingDebug", false, "Log detailed Blacksmith head hiding and helmet shadow decisions.");
         LogRendererNames = Config.Bind("Debug", "LogRendererNames", false, "Log local player renderer names, paths, materials, and enabled states once when first-person mode activates.");
 
         _harmony = new Harmony(PluginGuid);
@@ -141,6 +155,13 @@ public sealed class Plugin : BaseUnityPlugin
     {
         if (EnableDebugLogs?.Value == true)
             Log.LogInfo($"[Debug] {message}");
+    }
+
+    internal static void HeadHidingDebugLog(string message)
+    {
+        // Head hiding debug can be enabled independently for compatibility reports.
+        if (LogHeadHidingDebug?.Value == true || EnableDebugLogs?.Value == true)
+            Log.LogInfo($"[HeadHiding] {message}");
     }
 
     private void OnDestroy()

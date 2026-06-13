@@ -17,6 +17,7 @@
     <BepInExDir>C:\Users\MJ\AppData\Roaming\com.kesomannen.gale\valheim\profiles\Clean Dev\BepInEx</BepInExDir>
 
     <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
+    <BlacksmithToolsDir>$(BepInExDir)\plugins\GoldenJude-Blacksmiths_tools</BlacksmithToolsDir>
     <PluginOutputDir>$(BepInExDir)\plugins\ImmersiveFirstPerson</PluginOutputDir>
   </PropertyGroup>
 
@@ -28,6 +29,11 @@
 
     <Reference Include="0Harmony">
       <HintPath>$(BepInExDir)\core\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <Reference Include="BlacksmithTools">
+      <HintPath>$(BlacksmithToolsDir)\BlacksmithTools.dll</HintPath>
       <Private>false</Private>
     </Reference>
 
