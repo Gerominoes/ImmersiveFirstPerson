@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+dist/
+
+# Local developer overrides
+Directory.Build.props
+*.user
+*.rsuser
+
+# IDE workspace state
+.vs/
+.vscode/.ropeproject/
+
+# Operating system files
+Thumbs.db
+.DS_Store

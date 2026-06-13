@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Assembly settings -->
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <AssemblyName>ImmersiveFirstPerson</AssemblyName>
@@ -9,18 +10,27 @@
 
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
-
-    <!-- Actual Steam Valheim install -->
-    <ValheimDir>C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
-
-    <!-- Gale profile BepInEx folder -->
-    <BepInExDir>C:\Users\MJ\AppData\Roaming\com.kesomannen.gale\valheim\profiles\Clean Dev\BepInEx</BepInExDir>
-
-    <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
-    <BlacksmithToolsDir>$(BepInExDir)\plugins\GoldenJude-Blacksmiths_tools</BlacksmithToolsDir>
-    <PluginOutputDir>$(BepInExDir)\plugins\ImmersiveFirstPerson</PluginOutputDir>
   </PropertyGroup>
 
+  <!-- Local dependency locations -->
+  <PropertyGroup>
+    <ValheimDir Condition="'$(ValheimDir)' == '' and '$(VALHEIM_DIR)' != ''">$(VALHEIM_DIR)</ValheimDir>
+    <BepInExDir Condition="'$(BepInExDir)' == '' and '$(BEPINEX_DIR)' != ''">$(BEPINEX_DIR)</BepInExDir>
+    <BlacksmithToolsDir Condition="'$(BlacksmithToolsDir)' == '' and '$(BLACKSMITH_TOOLS_DIR)' != ''">$(BLACKSMITH_TOOLS_DIR)</BlacksmithToolsDir>
+    <BlacksmithToolsDir Condition="'$(BlacksmithToolsDir)' == '' and '$(BepInExDir)' != ''">$(BepInExDir)\plugins\GoldenJude-Blacksmiths_tools</BlacksmithToolsDir>
+    <PluginOutputDir Condition="'$(PluginOutputDir)' == '' and '$(BepInExDir)' != ''">$(BepInExDir)\plugins\ImmersiveFirstPerson</PluginOutputDir>
+
+    <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
+  </PropertyGroup>
+
+  <!-- Build-time dependency validation -->
+  <Target Name="ValidateLocalDependencyPaths" BeforeTargets="ResolveReferences">
+    <Error Condition="'$(ValheimDir)' == ''" Text="Set ValheimDir in Directory.Build.props, pass /p:ValheimDir=..., or set the VALHEIM_DIR environment variable." />
+    <Error Condition="'$(BepInExDir)' == ''" Text="Set BepInExDir in Directory.Build.props, pass /p:BepInExDir=..., or set the BEPINEX_DIR environment variable." />
+    <Error Condition="'$(BlacksmithToolsDir)' == ''" Text="Set BlacksmithToolsDir in Directory.Build.props, pass /p:BlacksmithToolsDir=..., or set the BLACKSMITH_TOOLS_DIR environment variable." />
+  </Target>
+
+  <!-- External game and mod references -->
   <ItemGroup>
     <Reference Include="BepInEx">
       <HintPath>$(BepInExDir)\core\BepInEx.dll</HintPath>
@@ -63,7 +73,8 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="CopyToBepInEx" AfterTargets="Build">
+  <!-- Local plugin deployment -->
+  <Target Name="CopyToBepInEx" AfterTargets="Build" Condition="'$(PluginOutputDir)' != '' and '$(CopyToBepInEx)' != 'false'">
     <MakeDir Directories="$(PluginOutputDir)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginOutputDir)" />
   </Target>

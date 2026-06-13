@@ -1,0 +1,15 @@
+<Project>
+  <!-- Local dependency locations -->
+  <PropertyGroup>
+    <ValheimDir>C:\Path\To\Steam\steamapps\common\Valheim</ValheimDir>
+    <BepInExDir>C:\Path\To\BepInEx</BepInExDir>
+
+    <!-- Use this only when Blacksmiths tools is installed outside the BepInEx plugins folder. -->
+    <!-- <BlacksmithToolsDir>C:\Path\To\GoldenJude-Blacksmiths_tools</BlacksmithToolsDir> -->
+  </PropertyGroup>
+
+  <!-- Local build behavior -->
+  <PropertyGroup>
+    <CopyToBepInEx>true</CopyToBepInEx>
+  </PropertyGroup>
+</Project>
