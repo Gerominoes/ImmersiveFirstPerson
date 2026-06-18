@@ -18,7 +18,7 @@ internal static class HelmetShadowController
     private static readonly FieldInfo? HelmetItemInstanceField =
         AccessTools.Field(typeof(VisEquipment), "m_helmetItemInstance");
 
-    private static readonly Dictionary<Renderer, RendererState> OriginalRendererStates = new();
+    private static readonly Dictionary<Renderer, RendererStateSnapshot> OriginalRendererStates = new();
     private static readonly Dictionary<VisEquipment, HashSet<Renderer>> HelmetChangeSnapshots = new();
     private static readonly HashSet<Renderer> DesiredRenderers = new();
     private static readonly HashSet<Renderer> ObservedHelmetRenderers = new();
@@ -31,24 +31,6 @@ internal static class HelmetShadowController
     private static bool _active;
     private static bool _dirty = true;
     private static float _nextRefreshTime;
-
-    private readonly struct RendererState
-    {
-        internal readonly bool Enabled;
-        internal readonly ShadowCastingMode ShadowCastingMode;
-        internal readonly bool ReceiveShadows;
-        internal readonly int Layer;
-        internal readonly Material[] SharedMaterials;
-
-        internal RendererState(Renderer renderer)
-        {
-            Enabled = renderer.enabled;
-            ShadowCastingMode = renderer.shadowCastingMode;
-            ReceiveShadows = renderer.receiveShadows;
-            Layer = renderer.gameObject.layer;
-            SharedMaterials = renderer.sharedMaterials ?? Array.Empty<Material>();
-        }
-    }
 
     private static readonly string[] FullBodyKeywords =
     {
@@ -338,12 +320,7 @@ internal static class HelmetShadowController
     private static bool IsRendererOwnedByLocalPlayer(Renderer renderer)
     {
         Player? player = Player.m_localPlayer;
-
-        return player != null &&
-               renderer != null &&
-               renderer.transform != null &&
-               player.transform != null &&
-               (renderer.transform == player.transform || renderer.transform.IsChildOf(player.transform));
+        return player != null && LocalPlayerRendererOwnership.IsLocalPlayerRenderer(player, renderer);
     }
 
     private static bool IsRendererNearPlayerHead(Player player, Renderer renderer)
@@ -478,7 +455,7 @@ internal static class HelmetShadowController
             if (renderer == null || OriginalRendererStates.ContainsKey(renderer))
                 continue;
 
-            OriginalRendererStates.Add(renderer, new RendererState(renderer));
+            OriginalRendererStates.Add(renderer, new RendererStateSnapshot(renderer));
             Plugin.HeadHidingDebugLog($"Helmet ShadowsOnly matched renderer: {BuildRendererDescriptor(renderer)}");
         }
     }
@@ -506,7 +483,7 @@ internal static class HelmetShadowController
         if (OriginalRendererStates.Count == 0)
             return;
 
-        foreach (KeyValuePair<Renderer, RendererState> entry in OriginalRendererStates)
+        foreach (KeyValuePair<Renderer, RendererStateSnapshot> entry in OriginalRendererStates)
         {
             Renderer renderer = entry.Key;
 
@@ -524,16 +501,10 @@ internal static class HelmetShadowController
         if (renderer == null)
             return;
 
-        if (!OriginalRendererStates.TryGetValue(renderer, out RendererState originalState))
+        if (!OriginalRendererStates.TryGetValue(renderer, out RendererStateSnapshot originalState))
             return;
 
-        renderer.enabled = originalState.Enabled;
-        renderer.shadowCastingMode = originalState.ShadowCastingMode;
-        renderer.receiveShadows = originalState.ReceiveShadows;
-        renderer.sharedMaterials = originalState.SharedMaterials;
-
-        if (renderer.gameObject != null)
-            renderer.gameObject.layer = originalState.Layer;
+        originalState.Restore(renderer);
     }
 
     private static void RemoveDestroyedRenderers()

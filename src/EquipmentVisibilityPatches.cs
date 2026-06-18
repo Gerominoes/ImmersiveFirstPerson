@@ -17,7 +17,10 @@ internal static class VisEquipmentSetHelmetEquippedPatch
         HelmetShadowController.CaptureHelmetChangeEnd(__instance, __result);
 
         if (__result && PlayerEquipmentAccess.IsLocalPlayerVisEquipment(__instance))
+        {
+            BodyVisibilityController.RequestRefresh();
             HeadVisibilityController.RequestRefresh();
+        }
     }
 }
 
@@ -28,7 +31,10 @@ internal static class VisEquipmentSetChestEquippedPatch
     {
         // Chest changes can rebuild the body mesh that Blacksmith modifies.
         if (__result && PlayerEquipmentAccess.IsLocalPlayerVisEquipment(__instance))
+        {
+            BodyVisibilityController.RequestRefresh();
             HeadVisibilityController.RequestRefresh();
+        }
     }
 }
 
@@ -39,7 +45,10 @@ internal static class VisEquipmentSetShoulderEquippedPatch
     {
         // Shoulder visuals can add skinned renderers near the head, so refresh the cache.
         if (__result && PlayerEquipmentAccess.IsLocalPlayerVisEquipment(__instance))
+        {
+            BodyVisibilityController.RequestRefresh();
             HeadVisibilityController.RequestRefresh();
+        }
     }
 }
 
@@ -50,7 +59,10 @@ internal static class VisEquipmentSetLegEquippedPatch
     {
         // Leg changes can rebuild the body mesh that Blacksmith modifies.
         if (__result && PlayerEquipmentAccess.IsLocalPlayerVisEquipment(__instance))
+        {
+            BodyVisibilityController.RequestRefresh();
             HeadVisibilityController.RequestRefresh();
+        }
     }
 }
 
@@ -61,7 +73,10 @@ internal static class VisEquipmentSetModelPatch
     {
         // Model changes swap the underlying player mesh and invalidate body-part validation.
         if (PlayerEquipmentAccess.IsLocalPlayerVisEquipment(__instance))
+        {
+            BodyVisibilityController.RequestRefresh();
             HeadVisibilityController.RequestRefresh();
+        }
     }
 }
 

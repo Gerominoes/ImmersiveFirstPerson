@@ -17,24 +17,6 @@ internal static class HeadVisibilityController
     private const float HeadSlotCompensationScale = 1f / HeadShrinkScale;
     private static readonly Vector3 HeadShrinkVector = Vector3.one * HeadShrinkScale;
 
-    private readonly struct RendererState
-    {
-        internal readonly bool Enabled;
-        internal readonly ShadowCastingMode ShadowCastingMode;
-        internal readonly bool ReceiveShadows;
-        internal readonly int Layer;
-        internal readonly Material[] SharedMaterials;
-
-        internal RendererState(Renderer renderer)
-        {
-            Enabled = renderer.enabled;
-            ShadowCastingMode = renderer.shadowCastingMode;
-            ReceiveShadows = renderer.receiveShadows;
-            Layer = renderer.gameObject.layer;
-            SharedMaterials = renderer.sharedMaterials ?? Array.Empty<Material>();
-        }
-    }
-
     private readonly struct TransformState
     {
         internal readonly Vector3 LocalPosition;
@@ -47,7 +29,7 @@ internal static class HeadVisibilityController
         }
     }
 
-    private static readonly Dictionary<Renderer, RendererState> OriginalRendererStates = new();
+    private static readonly Dictionary<Renderer, RendererStateSnapshot> OriginalRendererStates = new();
     private static readonly Dictionary<Transform, Vector3> OriginalBoneScales = new();
     private static readonly Dictionary<Transform, TransformState> OriginalHeadSlotStates = new();
     private static readonly HashSet<Renderer> DesiredRenderers = new();
@@ -343,7 +325,7 @@ internal static class HeadVisibilityController
 
         RenderersToRemove.Clear();
 
-        foreach (KeyValuePair<Renderer, RendererState> entry in OriginalRendererStates)
+        foreach (KeyValuePair<Renderer, RendererStateSnapshot> entry in OriginalRendererStates)
         {
             Renderer renderer = entry.Key;
 
@@ -366,7 +348,7 @@ internal static class HeadVisibilityController
         {
             if (!OriginalRendererStates.ContainsKey(renderer))
             {
-                OriginalRendererStates.Add(renderer, new RendererState(renderer));
+                OriginalRendererStates.Add(renderer, new RendererStateSnapshot(renderer));
                 Plugin.DebugLog($"First-person head-slot visibility matched renderer: {BuildRendererDescriptor(renderer)} | bounds={renderer.bounds.size}");
             }
         }
@@ -762,20 +744,14 @@ internal static class HeadVisibilityController
         if (OriginalRendererStates.Count == 0)
             return;
 
-        foreach (KeyValuePair<Renderer, RendererState> entry in OriginalRendererStates)
+        foreach (KeyValuePair<Renderer, RendererStateSnapshot> entry in OriginalRendererStates)
         {
             Renderer renderer = entry.Key;
 
             if (renderer == null)
                 continue;
 
-            renderer.enabled = entry.Value.Enabled;
-            renderer.shadowCastingMode = entry.Value.ShadowCastingMode;
-            renderer.receiveShadows = entry.Value.ReceiveShadows;
-            renderer.sharedMaterials = entry.Value.SharedMaterials;
-
-            if (renderer.gameObject != null)
-                renderer.gameObject.layer = entry.Value.Layer;
+            entry.Value.Restore(renderer);
         }
 
         OriginalRendererStates.Clear();
@@ -788,16 +764,8 @@ internal static class HeadVisibilityController
         if (renderer == null)
             return;
 
-        if (OriginalRendererStates.TryGetValue(renderer, out RendererState originalState))
-        {
-            renderer.enabled = originalState.Enabled;
-            renderer.shadowCastingMode = originalState.ShadowCastingMode;
-            renderer.receiveShadows = originalState.ReceiveShadows;
-            renderer.sharedMaterials = originalState.SharedMaterials;
-
-            if (renderer.gameObject != null)
-                renderer.gameObject.layer = originalState.Layer;
-        }
+        if (OriginalRendererStates.TryGetValue(renderer, out RendererStateSnapshot originalState))
+            originalState.Restore(renderer);
     }
 
     private static void RestoreBoneScales()
@@ -920,16 +888,13 @@ internal static class HeadVisibilityController
 
     private static bool IsRendererOwnedByPlayer(Player player, Renderer renderer)
     {
-        return renderer != null && IsTransformOwnedByPlayer(player, renderer.transform);
+        return LocalPlayerRendererOwnership.IsLocalPlayerRenderer(player, renderer);
     }
 
     private static bool IsTransformOwnedByPlayer(Player player, Transform transform)
     {
         // Multiplayer safety: head hiding must only mutate the local player's hierarchy.
-        return IsLocalPlayer(player) &&
-               player.transform != null &&
-               transform != null &&
-               (transform == player.transform || transform.IsChildOf(player.transform));
+        return LocalPlayerRendererOwnership.IsLocalPlayerTransform(player, transform);
     }
 
     private static bool IsCachedLocalRenderer(Renderer renderer)

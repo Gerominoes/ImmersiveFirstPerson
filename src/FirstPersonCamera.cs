@@ -116,7 +116,7 @@ internal static class FirstPersonCamera
         if (!lockAttachedCamera)
             ResetAttachedCameraLock();
 
-        if (Plugin.LockBodyToCamera.Value && !lockAttachedCamera)
+        if (Plugin.LockBodyToCamera.Value && !lockAttachedCamera && !DodgeDirectionController.ShouldSkipBodyYawLock(player))
             LockBodyYawToCamera(player, vanillaCameraRotation);
 
         SaveOriginalCameraValues(camera);
@@ -182,7 +182,7 @@ internal static class FirstPersonCamera
         _loggedRenderingState = true;
 
         // Runtime logging confirms the first-person path preserves scene range and LOD.
-        Plugin.Log.LogInfo($"First-person rendering state: view distance unchanged; LOD unchanged; originalNearClip={_originalNearClip:0.###}; requestedNearClip={Plugin.NearClip.Value:0.###}; originalShadowDistance={_originalShadowDistance:0.###}; shadowDistanceCap={Plugin.FirstPersonShadowDistance.Value:0.###}; originalShadowCascades={_originalShadowCascades}; shadowCascadesCap={Plugin.FirstPersonShadowCascades.Value}; originalOcclusionCulling={_originalUseOcclusionCulling}; requestedOcclusionCulling={Plugin.UseOcclusionCulling.Value}; cameraEffectsDisabled={Plugin.DisableCameraEffects.Value}.");
+        Plugin.Log.LogInfo($"First-person rendering state: view distance unchanged; LOD unchanged; originalNearClip={_originalNearClip:0.###}; requestedNearClip={Plugin.NearClip.Value:0.###}; originalShadowDistance={_originalShadowDistance:0.###}; shadowDistanceCap={Plugin.FirstPersonShadowDistance.Value:0.###}; originalShadowCascades={_originalShadowCascades}; shadowCascadesCap={Plugin.FirstPersonShadowCascades.Value}; originalOcclusionCulling={_originalUseOcclusionCulling}; firstPersonOcclusionCulling=false; cameraEffectsDisabled={Plugin.DisableCameraEffects.Value}.");
     }
 
     private static void RestoreLocalVisibilityForSuppressedCamera()
@@ -564,7 +564,8 @@ internal static class FirstPersonCamera
     {
         // Keep the near clip tight without changing first-person view distance.
         camera.nearClipPlane = Mathf.Clamp(Plugin.NearClip.Value, 0.005f, 0.5f);
-        camera.useOcclusionCulling = Plugin.UseOcclusionCulling.Value;
+        // Camera occlusion culling is scene-wide, so first person keeps it off to avoid foliage culling.
+        camera.useOcclusionCulling = false;
 
         // Shadow settings reduce lighting cost without changing visible object distance.
         ApplyShadowOverrides();

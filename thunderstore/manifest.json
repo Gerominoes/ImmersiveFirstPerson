@@ -1,6 +1,6 @@
 {
   "name": "ImmersiveFirstPerson",
-  "version_number": "1.4.0",
+  "version_number": "1.4.1",
   "website_url": "https://github.com/Gerominoes/ImmersiveFirstPerson",
   "description": "A body-aware first-person camera for Valheim with shoulder peek and first-person rendering optimization options.",
   "dependencies": [

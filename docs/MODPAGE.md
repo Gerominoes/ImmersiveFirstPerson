@@ -10,13 +10,15 @@ Immersive First Person adds a grounded first-person camera to Valheim without re
 
 The camera tracks the player's animated head when possible, keeps the local body visible, and includes body-yaw locking so you do not end up staring at your own back in first person. Head hiding is disabled by default to preserve normal character shadows, but an optional head visibility setting is available for users who experience clipping with specific armor or equipment.
 
-Version 1.3.3 fixes head and helmet hiding edge cases while keeping Shoulder Peek configurable with hold or toggle input.
+Version 1.4.1 fixes first-person dodge direction, adds an optional camera-direction dodge setting, and prevents first-person camera culling from hiding nearby foliage and world props.
 
 ## Features
 
 - Toggleable first-person mode.
 - Animated head-tracked camera anchor.
 - Preserves vanilla mouse and movement controls.
+- Vanilla movement-input dodge direction by default.
+- Optional Dodge Where You Look config for camera-direction dodging.
 - Body-aware camera placement.
 - Body yaw lock to keep the player aligned with the camera.
 - Local body visibility restoration.
@@ -27,7 +29,7 @@ Version 1.3.3 fixes head and helmet hiding edge cases while keeping Shoulder Pee
 - Optional head and head-slot equipment hiding with full-size matched helmet-slot shadows.
 - Local-only `HideHead` behavior for multiplayer compatibility.
 - Configurable FOV, near clipping, camera offsets, body rotation, and attached-camera limits.
-- First-person optimization settings for shadows, occlusion culling, camera effects, and head-hiding cache cost.
+- First-person optimization settings for shadows, camera effects, and head-hiding cache cost.
 - Debug renderer logging for compatibility troubleshooting.
 
 ## Installation
@@ -50,6 +52,9 @@ This mod may conflict with mods that heavily modify the Valheim camera, player s
 ## Recommended default config
 
 ```ini
+[Input]
+Dodge Where You Look = false
+
 [Camera]
 UseHeadTrackedAnchor = true
 LockBodyToCamera = true
@@ -77,7 +82,7 @@ ShoulderPeekSpeed = 12
 [Graphics]
 FirstPersonShadowDistance = 30
 FirstPersonShadowCascades = 0
-UseOcclusionCulling = true
+UseOcclusionCulling = false
 DisableCameraEffects = false
 
 [Visibility]
@@ -86,11 +91,11 @@ ForceBodyVisible = true
 VisibilityRefreshInterval = 1
 ```
 
-## v1.3.3 changelog
+## 1.4.1 changelog
 
-Visibility Fix Update.
+Dodge and Foliage Fix Update.
 
-- Fixed `HideHead` matching weapon parts with `head` in mesh or material names.
-- Improved `HideHead` behavior for helmets and characters where the head is part of a shared body mesh.
-- Fixed helmet-slot transform compensation that could make equipped helmets appear far away or in the skybox.
-- Updated mod version to v1.3.3.
+- Added a new Dodge Where You Look config option.
+- Fixed first-person dodge direction when Dodge Where You Look is disabled. Holding S before dodging now performs a backward dodge instead of forcing a camera-forward dodge.
+- Fixed unintended foliage/world-object culling near the player. ImmersiveFirstPerson now restricts visibility changes to local player-owned renderers only.
+- Improved renderer state restoration safeguards when entering/exiting first-person mode.

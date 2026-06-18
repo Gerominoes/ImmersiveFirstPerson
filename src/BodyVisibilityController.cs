@@ -6,7 +6,7 @@ namespace ImmersiveFirstPerson;
 
 internal static class BodyVisibilityController
 {
-    private static readonly Dictionary<Renderer, bool> OriginalRendererStates = new();
+    private static readonly Dictionary<Renderer, RendererStateSnapshot> OriginalRendererStates = new();
     private static readonly List<Renderer?> DeadRenderers = new();
     private static Player? _cachedPlayer;
     private static bool _captured;
@@ -79,9 +79,19 @@ internal static class BodyVisibilityController
 
     internal static void Reset()
     {
+        RestoreRendererStates();
         OriginalRendererStates.Clear();
         DeadRenderers.Clear();
         _cachedPlayer = null;
+        _captured = false;
+    }
+
+    internal static void RequestRefresh()
+    {
+        // Equipment changes can replace renderer instances while first person is active.
+        RestoreRendererStates();
+        OriginalRendererStates.Clear();
+        DeadRenderers.Clear();
         _captured = false;
     }
 
@@ -95,13 +105,16 @@ internal static class BodyVisibilityController
             if (renderer == null)
                 continue;
 
+            if (!LocalPlayerRendererOwnership.IsLocalPlayerRenderer(player, renderer))
+                continue;
+
             if (!renderer.enabled)
                 continue;
 
             if (LooksLikeHeadRenderer(renderer))
                 continue;
 
-            OriginalRendererStates[renderer] = true;
+            OriginalRendererStates[renderer] = new RendererStateSnapshot(renderer);
         }
 
         _captured = true;
@@ -115,6 +128,9 @@ internal static class BodyVisibilityController
         foreach (Renderer renderer in OriginalRendererStates.Keys)
         {
             if (renderer == null)
+                continue;
+
+            if (_cachedPlayer == null || !LocalPlayerRendererOwnership.IsLocalPlayerRenderer(_cachedPlayer, renderer))
                 continue;
 
             if (!renderer.enabled)
@@ -142,6 +158,22 @@ internal static class BodyVisibilityController
         }
 
         return false;
+    }
+
+    private static void RestoreRendererStates()
+    {
+        if (OriginalRendererStates.Count == 0)
+            return;
+
+        foreach (KeyValuePair<Renderer, RendererStateSnapshot> entry in OriginalRendererStates)
+        {
+            Renderer renderer = entry.Key;
+
+            if (renderer == null)
+                continue;
+
+            entry.Value.Restore(renderer);
+        }
     }
 
     private static bool ContainsAnyHeadKeyword(string value)

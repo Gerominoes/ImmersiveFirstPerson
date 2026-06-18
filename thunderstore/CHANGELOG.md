@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1
+
+- Added a new Dodge Where You Look config option.
+- Fixed first-person dodge direction when Dodge Where You Look is disabled. Holding S before dodging now performs a backward dodge instead of forcing a camera-forward dodge.
+- Fixed unintended foliage/world-object culling near the player. ImmersiveFirstPerson now restricts visibility changes to local player-owned renderers only.
+- Improved renderer state restoration safeguards when entering/exiting first-person mode.
+
 ## v1.4.0
 
 ### Changed

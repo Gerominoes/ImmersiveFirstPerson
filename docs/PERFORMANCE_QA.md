@@ -1,6 +1,6 @@
-# Immersive First Person 1.3.3 Performance QA
+# Immersive First Person 1.4.1 Performance QA
 
-Use this worksheet for the in-game profiler and camera regression pass before publishing the Shoulder Peek Update.
+Use this worksheet for the in-game profiler and camera regression pass before publishing the Dodge and Foliage Fix Update.
 
 ## Test Setup
 
@@ -24,7 +24,7 @@ Use this worksheet for the in-game profiler and camera regression pass before pu
 
 ## Metrics
 
-| Metric | Third Person | First Person Before 1.3.3 | First Person 1.3.3 | Notes |
+| Metric | Third Person | First Person Before 1.4.1 | First Person 1.4.1 | Notes |
 | --- | ---: | ---: | ---: | --- |
 | FPS | TBD | TBD | TBD | Capture from the same scene and camera direction. |
 | CPU Main Thread ms | TBD | TBD | TBD | Unity Profiler CPU module. |
@@ -56,6 +56,10 @@ Use this worksheet for the in-game profiler and camera regression pass before pu
 - [ ] Shoulder Peek toggle mode switches left and right, then returns to center when the active key is pressed again.
 - [ ] Shoulder Peek resets after leaving first-person mode.
 - [ ] Shoulder Peek keeps the camera side-only without moving backward.
+- [ ] `Dodge Where You Look = false` keeps RMB + S + Space as a backward dodge.
+- [ ] `Dodge Where You Look = false` keeps W, A, D, and diagonal dodge input vanilla-like.
+- [ ] `Dodge Where You Look = true` dodges toward the first-person look direction.
+- [ ] Raspberry, blueberry, and cloudberry bush leaves and branches remain visible at close range.
 - [ ] Local body, hands, and held items remain visible.
 - [ ] `HideHead = true` still hides head and head-slot equipment from the camera.
 - [ ] Helmet-slot equipment stays invisible to the camera and still casts a shadow with `HideHead = true`.

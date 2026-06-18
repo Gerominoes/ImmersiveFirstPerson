@@ -28,7 +28,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.geronimo.valheim.immersivefirstperson";
     public const string PluginName = "Immersive First Person";
-    public const string PluginVersion = "1.4.0";
+    public const string PluginVersion = "1.4.1";
     public const string BlacksmithToolsPluginGuid = "GoldenJude_BlacksmithTools";
 
     internal static ManualLogSource Log = null!;
@@ -36,6 +36,7 @@ public sealed class Plugin : BaseUnityPlugin
     internal static ConfigEntry<bool> EnableMod = null!;
     internal static ConfigEntry<KeyCode> ToggleFirstPersonKey = null!;
     internal static ConfigEntry<bool> DefaultToFirstPerson = null!;
+    internal static ConfigEntry<bool> DodgeWhereYouLook = null!;
 
     internal static ConfigEntry<bool> OverrideForcedThirdPerson = null!;
     internal static ConfigEntry<bool> LockCameraWhileAttached = null!;
@@ -90,6 +91,7 @@ public sealed class Plugin : BaseUnityPlugin
         // Input settings.
         ToggleFirstPersonKey = Config.Bind("Input", "ToggleFirstPersonKey", KeyCode.F6, "Press this key to toggle first-person mode.");
         DefaultToFirstPerson = Config.Bind("Input", "DefaultToFirstPerson", false, "Start in first-person mode when the local player is ready.");
+        DodgeWhereYouLook = Config.Bind("Input", "Dodge Where You Look", false, "When enabled, dodge direction follows the first-person camera/look direction. When disabled, dodge direction follows vanilla movement input, allowing S to dodge backward without looking backward.");
 
         // Camera override settings.
         OverrideForcedThirdPerson = Config.Bind("Camera Overrides", "OverrideForcedThirdPerson", true, "Keep first-person mode active during gameplay interactions that normally force third person, such as inventory, crafting, ships, hold fast, and attached states.");
@@ -124,7 +126,7 @@ public sealed class Plugin : BaseUnityPlugin
         // Graphics optimization settings.
         FirstPersonShadowDistance = Config.Bind("Graphics", "FirstPersonShadowDistance", 30f, new ConfigDescription("Maximum shadow draw distance while first-person mode is active. Set to -1 to keep the game's current shadow distance.", new AcceptableValueRange<float>(-1f, 500f)));
         FirstPersonShadowCascades = Config.Bind("Graphics", "FirstPersonShadowCascades", 0, new ConfigDescription("Maximum shadow cascade count while first-person mode is active. Set to -1 to keep the game's current cascade count. Values are normalized to 0, 2, or 4.", new AcceptableValueRange<int>(-1, 4)));
-        UseOcclusionCulling = Config.Bind("Graphics", "UseOcclusionCulling", true, "Enable camera occlusion culling while first-person mode is active.");
+        UseOcclusionCulling = Config.Bind("Graphics", "UseOcclusionCulling", false, "Legacy compatibility setting. First-person mode now keeps camera occlusion culling disabled so world foliage and props remain visible.");
         DisableCameraEffects = Config.Bind("Graphics", "DisableCameraEffects", false, "Disable known camera post-processing components while first-person mode is active, then restore them when leaving first person.");
 
         // Visibility settings.
@@ -148,7 +150,7 @@ public sealed class Plugin : BaseUnityPlugin
     private static void LogOptimizationPolicy()
     {
         // Startup policy logging makes game logs enough to verify immersion-safe settings.
-        Log.LogInfo($"Optimization policy: view distance unchanged; LOD unchanged; shadowDistanceCap={FirstPersonShadowDistance.Value}; shadowCascadesCap={FirstPersonShadowCascades.Value}; occlusionCulling={UseOcclusionCulling.Value}; disableCameraEffects={DisableCameraEffects.Value}; visibilityRefreshInterval={VisibilityRefreshInterval.Value}s.");
+        Log.LogInfo($"Optimization policy: view distance unchanged; LOD unchanged; shadowDistanceCap={FirstPersonShadowDistance.Value}; shadowCascadesCap={FirstPersonShadowCascades.Value}; firstPersonOcclusionCulling=false; disableCameraEffects={DisableCameraEffects.Value}; visibilityRefreshInterval={VisibilityRefreshInterval.Value}s.");
     }
 
     internal static void DebugLog(string message)

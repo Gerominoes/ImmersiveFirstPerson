@@ -1,27 +1,29 @@
 # Immersive First Person
 
-A body-aware first-person camera for **Valheim**.
+A first-person Valheim camera that lets you look through your character's eyes while your body stays in the world.
 
-Step into your character's boots and keep Valheim feeling like Valheim. Immersive First Person tracks your animated head, keeps your local body visible, and handles the awkward moments where the game normally pulls the camera back out.
+Walk the Black Forest, sail into storms, build by the fire, and fight up close without losing sight of your hands, gear, and footing. Immersive First Person follows your character's animated head, keeps your local body visible, and smooths over the moments where Valheim usually pulls the camera back out.
 
 ![Immersive First Person SS](https://raw.githubusercontent.com/Gerominoes/ImmersiveFirstPerson/main/assets/demo.png)
 
 ## Highlights
 
-- Toggle first person with `F6`.
-- Keep your body, hands, and held items visible.
+- Press `F6` to step in and out of first person.
+- See your body, hands, weapons, shields, and tools.
 - Stay first person while crafting, sailing, sitting, holding fast, or opening inventory.
-- Peek left or right in first person with hold or toggle controls.
-- Smooth out intense head movement with the head bob slider.
-- Hide head and helmet-slot gear when camera clipping gets in the way.
-- Keep `HideHead` local-only for multiplayer.
-- Tune shadows, occlusion culling, camera effects, and visibility refresh cost.
+- Dodge with normal Valheim movement by default, so `S` dodges backward and `A` or `D` dodges sideways.
+- Turn on `Dodge Where You Look` if you prefer dodging toward the camera direction.
+- Peek left or right with simple shoulder peek controls.
+- Calm down heavy head movement with the head bob slider.
+- Hide head and helmet-slot gear when it gets in the camera.
+- Keep foliage, berry bushes, trees, and world props visible up close.
+- Keep visibility changes local to your own player in multiplayer.
 
 ## Quick Start
 
 Install the mod, launch Valheim once, then press `F6`.
 
-If your head or helmet gets in the camera, enable:
+If your head or helmet blocks the view, turn this on:
 
 ```ini
 [Visibility]
@@ -31,9 +33,12 @@ HideHead = true
 <details>
 <summary>Recommended settings</summary>
 
-For the intended first-person feel, start here:
+These settings are a good first run:
 
 ```ini
+[Input]
+Dodge Where You Look = false
+
 [Camera Overrides]
 OverrideForcedThirdPerson = true
 LockCameraWhileAttached = true
@@ -56,7 +61,7 @@ ShoulderPeekSpeed = 12
 [Graphics]
 FirstPersonShadowDistance = 30
 FirstPersonShadowCascades = 0
-UseOcclusionCulling = true
+UseOcclusionCulling = false
 DisableCameraEffects = false
 
 [Visibility]
@@ -69,9 +74,9 @@ VisibilityRefreshInterval = 1
 
 ## Performance
 
-Version 1.3.3 keeps view distance and LOD unchanged for immersion. The optimization settings focus on shadows, occlusion culling, optional camera effects, and head-hiding scan cost.
+Version 1.4.1 leaves world draw distance and LOD alone, so forests, berry bushes, and nearby props stay visible when you walk up to them. The performance settings focus on shadows, optional camera effects, and how often head or helmet visibility is refreshed.
 
-To keep the game's current shadow settings:
+To keep Valheim's current shadow settings:
 
 ```ini
 [Graphics]
@@ -85,25 +90,26 @@ DisableCameraEffects = false
 
 | Section | Option | Default | What it does |
 | --- | --- | ---: | --- |
-| `Camera Overrides` | `OverrideForcedThirdPerson` | `true` | Keeps first person active during gameplay interactions. |
-| `Camera Overrides` | `LockCameraWhileAttached` | `true` | Locks the camera to a stable body offset while seated, sailing, or attached. |
-| `Camera Overrides` | `AttachedCameraExtraVerticalOffset` | `0` | Adds height to the attached camera position. |
-| `Camera Overrides` | `AttachedCameraExtraForwardOffset` | `0.08` | Moves the attached camera forward slightly. |
-| `Camera Overrides` | `AttachedCameraMaxYaw` | `80` | Limits left and right looking while attached. |
-| `Camera Overrides` | `AttachedCameraMaxPitch` | `55` | Limits up and down looking while attached. |
-| `Shoulder Peek` | `EnableShoulderPeek` | `true` | Enables first-person side peeking. |
-| `Shoulder Peek` | `ShoulderPeekMode` | `Hold` | Uses hold or toggle input behavior. |
-| `Shoulder Peek` | `PeekLeftKey` | `Mouse3` | Peeks the camera left. |
-| `Shoulder Peek` | `PeekRightKey` | `Mouse4` | Peeks the camera right. |
-| `Shoulder Peek` | `ShoulderPeekOffset` | `0.28` | Sets the side-only camera offset. |
-| `Shoulder Peek` | `ShoulderPeekSpeed` | `12` | Sets how quickly the side offset blends. |
-| `Graphics` | `FirstPersonShadowDistance` | `30` | Caps first-person shadow distance. Use `-1` to keep the current value. |
-| `Graphics` | `FirstPersonShadowCascades` | `0` | Caps first-person shadow cascades. Use `-1` to keep the current value. |
-| `Graphics` | `UseOcclusionCulling` | `true` | Enables camera occlusion culling in first person. |
-| `Graphics` | `DisableCameraEffects` | `false` | Temporarily disables known camera post-processing components. |
-| `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much animated head movement affects the camera. |
-| `Visibility` | `HideHead` | `false` | Hides the local head and matched head-slot gear from the camera. |
-| `Visibility` | `VisibilityRefreshInterval` | `1` | Controls how often head-slot renderers and head bones are refreshed. |
+| `Input` | `Dodge Where You Look` | `false` | Keeps normal Valheim dodge controls. Enable it to dodge toward the camera direction instead. |
+| `Camera Overrides` | `OverrideForcedThirdPerson` | `true` | Keeps first person active during common gameplay screens and interactions. |
+| `Camera Overrides` | `LockCameraWhileAttached` | `true` | Keeps the view steady while seated, sailing, or attached to something. |
+| `Camera Overrides` | `AttachedCameraExtraVerticalOffset` | `0` | Raises or lowers the attached camera position. |
+| `Camera Overrides` | `AttachedCameraExtraForwardOffset` | `0.08` | Nudges the attached camera slightly forward. |
+| `Camera Overrides` | `AttachedCameraMaxYaw` | `80` | Sets how far you can look left or right while attached. |
+| `Camera Overrides` | `AttachedCameraMaxPitch` | `55` | Sets how far you can look up or down while attached. |
+| `Shoulder Peek` | `EnableShoulderPeek` | `true` | Lets you peek left or right in first person. |
+| `Shoulder Peek` | `ShoulderPeekMode` | `Hold` | Uses hold or toggle behavior for shoulder peek. |
+| `Shoulder Peek` | `PeekLeftKey` | `Mouse3` | Peeks left. |
+| `Shoulder Peek` | `PeekRightKey` | `Mouse4` | Peeks right. |
+| `Shoulder Peek` | `ShoulderPeekOffset` | `0.28` | Sets how far the camera leans sideways. |
+| `Shoulder Peek` | `ShoulderPeekSpeed` | `12` | Sets how quickly the lean moves in and out. |
+| `Graphics` | `FirstPersonShadowDistance` | `30` | Caps shadow distance in first person. Use `-1` to keep the current value. |
+| `Graphics` | `FirstPersonShadowCascades` | `0` | Caps shadow cascades in first person. Use `-1` to keep the current value. |
+| `Graphics` | `UseOcclusionCulling` | `false` | Kept off in first person so nearby foliage and props stay visible. The setting remains for old configs. |
+| `Graphics` | `DisableCameraEffects` | `false` | Temporarily turns off known camera effects, then restores them when you leave first person. |
+| `Camera Motion` | `HeadBobAmount` | `0.5` | Controls how much animated head movement reaches the camera. |
+| `Visibility` | `HideHead` | `false` | Hides your local head and matched head-slot gear from the camera. |
+| `Visibility` | `VisibilityRefreshInterval` | `1` | Sets how often head, helmet, and head-slot visibility checks refresh. |
 
 </details>
 
@@ -119,13 +125,13 @@ Launch the game once to generate the config file.
 
 ## Updating
 
-If the mod acts oddly after an update, back up and delete the old config file, then launch the game once to regenerate it.
+If things feel odd after an update, back up and delete the old config file, then launch the game once to regenerate it.
 
 ## Compatibility
 
 This mod touches the camera, local player visibility, the character skeleton, and attached camera states. Mods that heavily change those systems may overlap.
 
-`HideHead` only mutates the local player's renderers and bones. Remote player characters are ignored for multiplayer compatibility.
+`HideHead` only changes your local player's renderers and bones. Remote players, bushes, trees, plants, pickables, destructibles, and terrain props are left alone.
 
 ## Credits
 
